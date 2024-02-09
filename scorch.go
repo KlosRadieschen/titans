@@ -23,7 +23,7 @@ func updateList(s *discordgo.Session) {
 	var displayNames = []string{"PC", "Xbox", "Playstations", "PS4", "PS4"}
 
 	for i := range lowerCaseNames {
-		appendEntryFromFile(response, lowerCaseNames[i], displayNames[i])
+		response = appendEntryFromFile(response, lowerCaseNames[i], displayNames[i])
 	}
 
 	file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
@@ -47,16 +47,17 @@ func updateList(s *discordgo.Session) {
 	}
 }
 
-func appendEntryFromFile(response string, lowerCaseName string, displayName string) {
+func appendEntryFromFile(response string, lowerCaseName string, displayName string) string {
 	file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.Split(scanner.Text(), ",")
-		if len(parts) == 3 && strings.ToLower(parts[2]) != "playstation" && strings.ToLower(parts[2]) != "pc" && strings.ToLower(parts[2]) != "xbox" && strings.ToLower(parts[2]) != "ps4" && strings.ToLower(parts[2]) != "ps5" {
-			response += fmt.Sprintf("%s: %s\n", "**"+parts[2]+"**", parts[1])
+		if len(parts) == 3 && strings.ToLower(parts[2]) == lowerCaseName {
+			response += fmt.Sprintf("%s: %s\n", "**"+displayName+"**", parts[1])
 		}
 	}
+	return response
 }
 
 func guildMemberAdd(s *discordgo.Session, m *discordgo.GuildMemberAdd) {

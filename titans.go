@@ -1410,15 +1410,32 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 		activeSession.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "warcrime") || strings.Contains(strings.ToLower(m.Content), "war crime") {
 		activeSession.ChannelMessageSendReply(m.ChannelID, "\"Geneva Convention\" has been added on the To-do-list", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plc") || strings.Contains(strings.ToLower(m.Content), "p.l.c.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "**I shall grill all horny people** https://tenor.com/bFz07.gif", m.Reference())
+	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plr") || strings.Contains(strings.ToLower(m.Content), "p.l.r.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
+		var msg string
+		switch sessionIndex {
+			case 0:
+				msg = "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
+			case 1:
+				msg = "**Aiming railgun at horny people**\nhttps://tenor.com/4wKq.gif"
+			case 2:
+				msg = "**Laser coring the horny!**\nhttps://tenor.com/dTM8jj0vihs.gif"
+			case 3:
+				msg = "**Executing horny people**\nhttps://tenor.com/bUW7c.gif"
+			}
+		activeSession.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "choccy milk") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "Using my thermal capabilities to keep the choccy milk at the perfect temperature! You deserve it pilot", m.Reference())
+		activeSession.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "sandwich") {
 		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "dead") || strings.Contains(strings.ToLower(m.Content), "defeated") || strings.Contains(strings.ToLower(m.Content), "died") {
 		activeSession.ChannelMessageSendReply(m.ChannelID, "F", m.Reference())
 	} else if strings.Contains(m.Content, "┻━┻") {
+		if m.Author.ID == "942159289836011591" {
+			activeSession.ChannelMessageSendReply(m.ChannelID, "You know what, Wello? Fuck you, I give up", m.Reference())
+			time.Sleep(10 * time.Second)
+			activeSession.ChannelMessageSendReply(m.ChannelID, "Nevermind ┬─┬ノ( º _ ºノ)", m.Reference())
+			return
+		}
 		activeSession.ChannelMessageSendReply(m.ChannelID, "**CRITICAL ALERT, FLIPPED TABLE DETECTED**", m.Reference())
 		time.Sleep(1 * time.Second)
 		activeSession.ChannelMessageSendReply(m.ChannelID, "**POWERING UP ORBITAL LASERS**", m.Reference())
