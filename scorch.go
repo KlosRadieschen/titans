@@ -19,7 +19,7 @@ func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 
 func updateList(s *discordgo.Session) {
 	var lowerCaseNames = []string{"pc", "xbox", "playstation", "ps4", "ps5"}
-	var displayNames = []string{"PC", "Xbox", "Playstations", "PS4", "PS4"}
+	var displayNames = []string{"PC", "Xbox", "Playstation", "PS4", "PS5"}
 	var data [][]string
 
 	for i := range lowerCaseNames {
@@ -30,10 +30,10 @@ func updateList(s *discordgo.Session) {
 			parts := strings.Split(scanner.Text(), ",")
 			if len(parts) == 3 && strings.ToLower(parts[2]) == lowerCaseNames[i] {
 				member, err := s.GuildMember("1195135473006420048", parts[0])
+				rank, _ := s.State.Role("1195135473006420048", member.Roles[0])
 				if err != nil {
 					panic(parts[0] + ": " + err.Error())
 				}
-				rank, _ := s.State.Role("1195135473006420048", member.Roles[0])
 				var battalionName string
 				if len(member.Roles) < 2 {
 					battalionName = ""
@@ -41,9 +41,8 @@ func updateList(s *discordgo.Session) {
 					battalion, _ := s.State.Role("1195135473006420048", member.Roles[1])
 					battalionName = battalion.Name
 				}
-				var row = []string{displayNames[i], member.Mention(), parts[1], rank.Name, battalionName}
+				var row = []string{displayNames[i], member.User.Username, parts[1], rank.Name, battalionName}
 				data = append(data, row)
-				data = append(data, []string{""})
 			}
 		}
 	}
@@ -64,7 +63,7 @@ func updateList(s *discordgo.Session) {
 				battalionName = battalion.Name
 			}
 
-			var row = []string{parts[2], user.Mention(), parts[1], rank.Name, battalionName}
+			var row = []string{parts[2], user.User.Username, parts[1], rank.Name, battalionName}
 			data = append(data, row)
 		}
 	}
@@ -72,24 +71,53 @@ func updateList(s *discordgo.Session) {
 	var builder strings.Builder
 	writer := &builder
 	table := tablewriter.NewWriter(writer)
-	//table.SetHeader([]string{"Platform", "User", "in-game name", "Rank", "Battalion"})
-	table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
+	table.SetHeader([]string{"Platform", "User", "in-game name", "Rank", "Battalion"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: true, Right: true, Bottom: true})
 	table.SetCenterSeparator("|")
 	table.AppendBulk(data)
 	table.Render()
 
-	embed := &discordgo.MessageEmbed{
-		Title:       "Registered members:",
-		Description: builder.String(),
-		Color:       0xF73718,
-	}
-	_, err := s.ChannelMessageEditEmbed("1196072273686315008", "1196079691577163798", embed)
+	tableString := builder.String()
+	drawText(SplitLines(tableString))
+
+	file, err := os.Open(directory + "table.png")
 	if err != nil {
-		panic(err.Error())
+		file, err = os.Open(directory + "table.png")
+		if err != nil {
+			panic(err)
+		}
 	}
+	defer file.Close()
+
+	s.State.MaxMessageCount = 100
+	channel, _ := s.State.Channel("1196072273686315008")
+	for _, msg := range channel.Messages {
+		err := s.ChannelMessageDelete(channel.ID, msg.ID)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+
+	reader := discordgo.File{
+		Name:   "table.png",
+		Reader: file,
+	}
+	messageSend := &discordgo.MessageSend{
+		Files: []*discordgo.File{&reader},
+	}
+	s.ChannelMessageSendComplex(channel.ID, messageSend)
 }
 
 func guildMemberAdd(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 	s.ChannelMessageSend("1195135473643958316", m.Mention()+", welcome to the AHA! Please consider using /register")
 	s.GuildMemberRoleAdd(GuildID, m.User.ID, "1195136604373782658")
+}
+
+func SplitLines(s string) []string {
+	var lines []string
+	sc := bufio.NewScanner(strings.NewReader(s))
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines
 }
