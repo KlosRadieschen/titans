@@ -38,80 +38,14 @@ var (
 			Description: "Check if this bastard isn't sleeping",
 		},
 		{
-			Name:        "poll",
-			Description: "Create a poll",
+			Name:        "add-topic",
+			Description: "Add a topic for the discussion command",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "question",
-					Description: "The question that is being asked",
+					Name:        "topic",
+					Description: "The topic you want to add",
 					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "duration",
-					Description: "The duration in text format (ex.: 1d 12h 30m 20s)",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option1",
-					Description: "The first option that the users can pick",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option2",
-					Description: "The second option that the users can pick",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option3",
-					Description: "The third option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option4",
-					Description: "The fourth option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option5",
-					Description: "The fifth option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option6",
-					Description: "The sixth option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option7",
-					Description: "The seventh option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option8",
-					Description: "The eight option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option9",
-					Description: "The nineth option that the users can pick",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "option10",
-					Description: "The tenth option that the users can pick",
-					Required:    false,
 				},
 			},
 		},
@@ -1020,12 +954,41 @@ var (
 			}
 
 			response = "Results of the poll:\n**" + i.ApplicationCommandData().Options[0].StringValue() + "**:\n"
-			for i, _ := range i.ApplicationCommandData().Options {
+			for i := range i.ApplicationCommandData().Options {
 				if i != 0 && i != 1 {
 					response += emojis[i-2] + options[i].StringValue() + ": **" + strconv.FormatFloat(float64(votes[poll.Reactions[i-2].Emoji.Name])/float64(total)*100, 'f', 0, 64) + "% (" + strconv.Itoa(votes[poll.Reactions[i-2].Emoji.Name]) + " votes)**\n"
 				}
 			}
 			s.ChannelMessageEdit(poll.ChannelID, poll.ID, response)
+		},
+		"discussion": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/topics.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
+			defer file.Close()
+
+			scanner := bufio.NewScanner(file)
+			scanner.Scan()
+			topics := strings.Split(scanner.Text(), "|")
+			randInt := rand.Intn(len(topics) - 1)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: string(topics[randInt]),
+				},
+			})
+		},
+		"add-topic": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/topics.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
+			defer file.Close()
+
+			file.WriteString("|" + strings.ReplaceAll(i.ApplicationCommandData().Options[0].StringValue(), "|", ";"))
+			defer file.Close()
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Topic added!",
+				},
+			})
 		},
 	}
 
@@ -1413,15 +1376,15 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plr") || strings.Contains(strings.ToLower(m.Content), "p.l.r.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
 		var msg string
 		switch sessionIndex {
-			case 0:
-				msg = "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
-			case 1:
-				msg = "**Aiming railgun at horny people**\nhttps://tenor.com/4wKq.gif"
-			case 2:
-				msg = "**Laser coring the horny!**\nhttps://tenor.com/dTM8jj0vihs.gif"
-			case 3:
-				msg = "**Executing horny people**\nhttps://tenor.com/bUW7c.gif"
-			}
+		case 0:
+			msg = "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
+		case 1:
+			msg = "**Aiming railgun at horny people**\nhttps://tenor.com/4wKq.gif"
+		case 2:
+			msg = "**Laser coring the horny!**\nhttps://tenor.com/dTM8jj0vihs.gif"
+		case 3:
+			msg = "**Executing horny people**\nhttps://tenor.com/bUW7c.gif"
+		}
 		activeSession.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "choccy milk") {
 		activeSession.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())

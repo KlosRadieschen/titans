@@ -29,19 +29,18 @@ func updateList(s *discordgo.Session) {
 		for scanner.Scan() {
 			parts := strings.Split(scanner.Text(), ",")
 			if len(parts) == 3 && strings.ToLower(parts[2]) == lowerCaseNames[i] {
-				member, err := s.GuildMember("1195135473006420048", parts[0])
-				rank, _ := s.State.Role("1195135473006420048", member.Roles[0])
-				if err != nil {
-					panic(parts[0] + ": " + err.Error())
+				member, _ := s.GuildMember("1195135473006420048", parts[0])
+				rank := ""
+				battalion := ""
+				for _, roleID := range member.Roles {
+					role, _ := s.State.Role("1195135473006420048", roleID)
+					if strings.Contains(role.Name, "Battalion") || strings.Contains(role.Name, "Operative") {
+						battalion = role.Name
+					} else if role.Name != "PC" && role.Name != "Xbox" && role.Name != "PlayStation" {
+						rank = role.Name
+					}
 				}
-				var battalionName string
-				if len(member.Roles) < 2 {
-					battalionName = ""
-				} else {
-					battalion, _ := s.State.Role("1195135473006420048", member.Roles[1])
-					battalionName = battalion.Name
-				}
-				var row = []string{displayNames[i], member.User.Username, parts[1], rank.Name, battalionName}
+				var row = []string{displayNames[i], member.User.Username, parts[1], rank, battalion}
 				data = append(data, row)
 			}
 		}
