@@ -968,7 +968,7 @@ var (
 			scanner := bufio.NewScanner(file)
 			scanner.Scan()
 			topics := strings.Split(scanner.Text(), "|")
-			randInt := rand.Intn(len(topics) - 1)
+			randInt := rand.Intn(len(topics))
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
