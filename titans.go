@@ -1105,7 +1105,7 @@ func main() {
 	sessions[1].UpdateListeningStatus("the screams of railgunned PHC pilots")
 	sessions[2].UpdateListeningStatus("the screams of lasered PHC pilots")
 	sessions[3].UpdateListeningStatus("the screams of minigunned PHC pilots")
-	updateList(sessions[0])
+	//updateList(sessions[0])
 
 	fmt.Println("Adding commands...")
 
@@ -1169,6 +1169,9 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Author.Bot {
+		return
+	} else if m.ChannelID == "1210703529107390545" {
+		handlesoundEffect(s, m)
 		return
 	}
 
@@ -1248,6 +1251,11 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 				awaitUsers = awaitUsers[:len(awaitUsers)-1]
 			}
 		}
+		if m.Author.ID == donator {
+			s.ChannelMessageDelete(m.ChannelID, m.ID)
+			s.ChannelMessageSend(m.ChannelID, "https://tenor.com/bN5md.gif")
+			return
+		}
 		ref := m.Reference()
 		file, err := os.Open(directory + "investigation.JPG")
 		if err != nil {
@@ -1310,9 +1318,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	} else if m.Author.ID == donator {
 		s.ChannelMessageDelete(m.ChannelID, m.ID)
-		if !sacrificed {
-			s.ChannelMessageSend(m.ChannelID, "Warning: Executed user is trying to resist!")
-		}
 		return
 	}
 
