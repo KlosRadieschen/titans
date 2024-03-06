@@ -1137,6 +1137,13 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.Bot {
+		return
+	} else if m.ChannelID == "1210703529107390545" {
+		handlesoundEffect(s, m)
+		return
+	}
+
 	channel, _ := s.Channel(m.ChannelID)
 
 	// Select the active titan(s), where -1 means all of them
@@ -1147,9 +1154,9 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "1196859120150642750":
 		sessionIndex = 2
 	case "1196859072494981120":
-		sessionIndex = 3
+		sessionIndex = 1
 	case "1196859003238625281":
-		sessionIndex = 3
+		sessionIndex = 1
 	}
 
 	var startValue int
@@ -1166,13 +1173,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSendReply(m.ChannelID, mes, m.Reference())
 		}
 		delete(message, m.Author.ID)
-	}
-
-	if m.Author.Bot {
-		return
-	} else if m.ChannelID == "1210703529107390545" {
-		handlesoundEffect(s, m)
-		return
 	}
 
 	// handle Scorch specific messages
