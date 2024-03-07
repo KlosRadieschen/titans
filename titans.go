@@ -38,13 +38,13 @@ var (
 			Description: "Check if this bastard isn't sleeping",
 		},
 		{
-			Name:        "add-topic",
+			Name:        "list",
 			Description: "Add a topic for the discussion command",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "topic",
-					Description: "The topic you want to add",
+					Name:        "table",
+					Description: "The table that you want info about",
 					Required:    true,
 				},
 			},
@@ -1061,6 +1061,8 @@ var (
 
 func main() {
 	var err error
+
+	addHandlers()
 
 	sessions[0], _ = discordgo.New("Bot " + scorchToken)
 	sessions[1], _ = discordgo.New("Bot " + northstarToken)
