@@ -38,13 +38,14 @@ var (
 			Description: "Check if this bastard isn't sleeping",
 		},
 		{
-			Name:        "list",
-			Description: "Add a topic for the discussion command",
+			Name:        "show-fleet",
+			Description: "Shows the fleet of the selected battalion",
 			Options: []*discordgo.ApplicationCommandOption{
+
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "table",
-					Description: "The table that you want info about",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "battalion",
+					Description: "The number of the battalion",
 					Required:    true,
 				},
 			},
