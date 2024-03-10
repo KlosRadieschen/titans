@@ -34,11 +34,11 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "test",
-			Description: "Check if this bastard isn't sleeping",
+			Name:        "listplanets",
+			Description: "Shows the list of members and their platform",
 		},
 		{
-			Name:        "show-fleet",
+			Name:        "getfleet",
 			Description: "Shows the fleet of the selected battalion",
 			Options: []*discordgo.ApplicationCommandOption{
 
