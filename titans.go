@@ -35,18 +35,54 @@ var (
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "listplanets",
-			Description: "Shows the list of members and their platform",
+			Description: "Shows the list of planets",
 		},
 		{
-			Name:        "getfleet",
-			Description: "Shows the fleet of the selected battalion",
+			Name:        "getpersonalship",
+			Description: "Shows the selected personal ship",
 			Options: []*discordgo.ApplicationCommandOption{
 
 				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "battalion",
-					Description: "The number of the battalion",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "name",
+					Description: "Name of the ship",
 					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "register",
+			Description: "Register yourself into the database",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionBoolean,
+					Name:        "simulacrum",
+					Description: "Wheater you are a simulacrum or not",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "titan-callsign",
+					Description: "Callsign of your titan (ex: DS-2629)",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "specialisation",
+					Description: "Your specialisation, if you have one",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "battalion-number",
+					Description: "the number of your battalion",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "ship-name",
+					Description: "The name of your personal ship",
+					Required:    false,
 				},
 			},
 		},
@@ -224,34 +260,6 @@ var (
 				})
 			}
 		},
-		"register": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				if strings.Split(scanner.Text(), ",")[0] == i.Member.User.ID {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "You are already registered!",
-						},
-					})
-					return
-				}
-			}
-
-			file.WriteString("\n" + i.Member.User.ID + "," + i.ApplicationCommandData().Options[0].StringValue() + "," + i.ApplicationCommandData().Options[1].StringValue())
-			defer file.Close()
-
-			updateList(s)
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "You have been registered!",
-				},
-			})
-		},
 		"get-info": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 			defer file.Close()
@@ -280,36 +288,6 @@ var (
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: "The user you are searching is not registered :(",
-				},
-			})
-		},
-		"remove": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var data []string
-			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				split := strings.Split(scanner.Text(), ",")
-				if len(split) == 3 {
-					if split[0] != i.Member.User.ID {
-						data = append(data, split[0]+","+split[1]+","+split[2])
-					}
-				}
-			}
-
-			os.Truncate("/home/Nicolas/go-workspace/src/titans/members.csv", 0)
-			for _, line := range data {
-				file.WriteString(line + "\n")
-			}
-			file.Sync()
-			os.Truncate("/home/Nicolas/go-workspace/src/titans/buffer.csv", 0)
-
-			updateList(s)
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Your information has been deleted",
 				},
 			})
 		},
