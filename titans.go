@@ -38,31 +38,25 @@ var (
 			Description: "Shows the list of planets",
 		},
 		{
-			Name:        "updateplatform",
-			Description: "Shows the selected personal ship",
+			Name:        "getpersonalshipwithuser",
+			Description: "Register yourself into the database",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "platform",
-					Description: "The platform(s) you play on",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "ingame-name",
-					Description: "Your in-game name, that can be used to add you as friend",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user you want to get the platform of",
 					Required:    true,
 				},
 			},
 		},
 		{
-			Name:        "getpilot",
+			Name:        "gettitanwithuser",
 			Description: "Register yourself into the database",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "pilot",
-					Description: "The pilot you are looking for",
+					Name:        "user",
+					Description: "The user you want to get the platform of",
 					Required:    true,
 				},
 			},
