@@ -38,51 +38,32 @@ var (
 			Description: "Shows the list of planets",
 		},
 		{
-			Name:        "getpersonalship",
+			Name:        "updateplatform",
 			Description: "Shows the selected personal ship",
 			Options: []*discordgo.ApplicationCommandOption{
-
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "name",
-					Description: "Name of the ship",
+					Name:        "platform",
+					Description: "The platform(s) you play on",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "ingame-name",
+					Description: "Your in-game name, that can be used to add you as friend",
 					Required:    true,
 				},
 			},
 		},
 		{
-			Name:        "register",
+			Name:        "getpilot",
 			Description: "Register yourself into the database",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "simulacrum",
-					Description: "Wheater you are a simulacrum or not",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "pilot",
+					Description: "The pilot you are looking for",
 					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "titan-callsign",
-					Description: "Callsign of your titan (ex: DS-2629)",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "specialisation",
-					Description: "Your specialisation, if you have one",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "battalion-number",
-					Description: "the number of your battalion",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "ship-name",
-					Description: "The name of your personal ship",
-					Required:    false,
 				},
 			},
 		},

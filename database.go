@@ -436,7 +436,7 @@ func addHandlers() {
 		defer db.Close()
 
 		//
-		stmt, err := db.Prepare("SELECT * FROM Titan WHERE pk_callsign=?")
+		stmt, err := db.Prepare("SELECT Titan.*, pk_userID FROM Titan INNER JOIN Pilot ON pk_callsign=fk_titan_pilots WHERE pk_callsign=?")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -457,7 +457,8 @@ func addHandlers() {
 			var class string
 			var weapons string
 			var abilities string
-			if err := rows.Scan(&callsign, &name, &class, &weapons, &abilities); err != nil {
+			var id string
+			if err := rows.Scan(&callsign, &name, &class, &weapons, &abilities, &id); err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -466,7 +467,8 @@ func addHandlers() {
 				})
 				return
 			}
-			resultString += fmt.Sprintf("**Titan information for %v (%v):**\n**Class: ** %v\n**Weapons: **%v\n**Abilities: **%v", name, callsign, class, weapons, abilities)
+			member, _ := s.GuildMember(GuildID, id)
+			resultString += fmt.Sprintf("**Titan information for %v (%v):**\n**Pilot: ** %v\n**Class: ** %v\n**Weapons: **%v\n**Abilities: **%v", name, callsign, member.Nick, class, weapons, abilities)
 		}
 		if resultString == "" {
 			resultString = "No results"
@@ -487,7 +489,7 @@ func addHandlers() {
 		defer db.Close()
 
 		//
-		stmt, err := db.Prepare("SELECT * FROM PersonalShip WHERE pk_name=?")
+		stmt, err := db.Prepare("SELECT PersonalShip.*, pk_userID FROM PersonalShip INNER JOIN Pilot ON pk_name=fk_personalship_possesses WHERE pk_name=?")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -507,7 +509,8 @@ func addHandlers() {
 			var class string
 			var description string
 			var capacity string
-			if err := rows.Scan(&name, &class, &description, &capacity); err != nil {
+			var id string
+			if err := rows.Scan(&name, &class, &description, &capacity, &id); err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -516,7 +519,8 @@ func addHandlers() {
 				})
 				return
 			}
-			resultString += fmt.Sprintf("**Ship information for AHF %v:**\n**Class: ** %v\n**Titan Capacity: **%v\n**Description: **%v", name, class, capacity, description)
+			member, _ := s.GuildMember(GuildID, id)
+			resultString += fmt.Sprintf("**Ship information for AHF %v:**\n**Pilot: ** %v\n**Class: ** %v\n**Titan Capacity: **%v\n**Description: **%v", name, member.Nick, class, capacity, description)
 		}
 		if resultString == "" {
 			resultString = "No results"
@@ -529,7 +533,118 @@ func addHandlers() {
 		})
 	}
 
-	// commanderHandler to INSERT a new pilot
+	commandHandlers["getflagship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT pk_name, class, pkfk_battalion_owns, titanCapacity, description FROM FlagShip INNER JOIN Fleet ON pk_name = fk_flagship_leads WHERE pk_name=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].StringValue())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var class string
+			var battalion string
+			var capacity string
+			var description string
+			if err := rows.Scan(&name, &class, &capacity, &battalion, &description); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			resultString += fmt.Sprintf("**Ship information for AHF %v:**\n**Class: **%v\n**Battalion: **%v\n**Titan Capacity: **%v\n**Description: **%v", name, class, battalion, capacity, description)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
+	commandHandlers["getpilot"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT pk_userID, specialisation, isSimulacrum, fk_battalion_isPartOf, fk_personalship_possesses, fk_titan_pilots, story FROM Pilot WHERE pk_userID=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var id string
+			var specialisation string
+			var isSimulacrum bool
+			var battalion int
+			var personalShip string
+			var titan string
+			var story string
+			if err := rows.Scan(&id, &specialisation, &isSimulacrum, &battalion, &personalShip, &titan, &story); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+
+			var simulacrumStr string
+			if isSimulacrum {
+				simulacrumStr = "Simulacrum"
+			} else {
+				simulacrumStr = "Human"
+			}
+			member, _ := s.State.Member(i.GuildID, id)
+			resultString += fmt.Sprintf("# INFO FOR %v (%v):\nSpecialisation: %v\nBattalion: %v\nPersonal Ship: %v\nTitan: %v\n# Story:\n%v", member.User.Username, simulacrumStr, specialisation, battalion, personalShip, titan, story)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
 		if err != nil {
@@ -538,7 +653,7 @@ func addHandlers() {
 		defer db.Close()
 
 		// Insert data into the table
-		stmt, err := db.Prepare("INSERT INTO Pilot(pk_userID, rank, specialisation, isSimulacrum, fk_titan_pilots, fk_battalion_isPartOf, fk_personalship_possesses) VALUES(?, ?, ?, ?, ?, ?, ?)")
+		stmt, err := db.Prepare("INSERT INTO Pilot(pk_userID, specialisation, isSimulacrum, fk_titan_pilots, fk_battalion_isPartOf, fk_personalship_possesses) VALUES (?, ?, ?, ?, ?, ?)")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -547,17 +662,208 @@ func addHandlers() {
 
 		// Execute the prepared statement with actual values
 		id := i.Member.User.ID
-		rank, _ := s.State.Role(GuildID, i.Member.Roles[0])
-		rankName := rank.Name
 		specialisation := i.ApplicationCommandData().Options[2].StringValue()
 		isSimulacrum := i.ApplicationCommandData().Options[0].BoolValue()
 		titanCallsign := i.ApplicationCommandData().Options[1].StringValue()
-		battalion := i.ApplicationCommandData().Options[3].StringValue()
+		battalion := i.ApplicationCommandData().Options[3].IntValue()
 		personalShip := ""
 		if len(i.ApplicationCommandData().Options) == 5 {
 			personalShip = i.ApplicationCommandData().Options[4].StringValue()
 		}
-		_, err = stmt.Exec(&id, &rankName, &specialisation, &isSimulacrum, &titanCallsign, &battalion, &personalShip)
+		_, err = stmt.Exec(&id, &specialisation, &isSimulacrum, &titanCallsign, &battalion, &personalShip)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully registered",
+			},
+		})
+	}
+
+	commandHandlers["updateplatform"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("UPDATE Pilot SET platform=?, ingameName=? WHERE pk_userID = ?")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		platform := i.ApplicationCommandData().Options[0].StringValue()
+		ingameName := i.ApplicationCommandData().Options[1].StringValue()
+
+		_, err = stmt.Exec(&platform, &ingameName, &i.Member.User.ID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Set/updated platform and ingame name",
+			},
+		})
+	}
+
+	commandHandlers["updatestory"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("UPDATE Pilot SET story=? WHERE pk_userID=?")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		id := i.Member.User.ID
+		story := i.ApplicationCommandData().Options[0].StringValue()
+
+		_, err = stmt.Exec(&story, &id)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully set your story",
+			},
+		})
+	}
+
+	commandHandlers["registertitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("INSERT INTO Titan VALUES(?, ?, ?, ?, ?)")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		stmt2, err := db.Prepare("UPDATE Pilot SET fk_titan_pilots = ? WHERE pk_userID = ?")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		callsign := i.ApplicationCommandData().Options[0].StringValue()
+		name := i.ApplicationCommandData().Options[1].StringValue()
+		class := i.ApplicationCommandData().Options[2].StringValue()
+		weapons := i.ApplicationCommandData().Options[3].StringValue()
+		abilities := i.ApplicationCommandData().Options[4].StringValue()
+
+		_, err = stmt.Exec(&callsign, &name, &class, &weapons, &abilities)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		_, err = stmt2.Exec(&callsign, i.Member.User.ID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully registered",
+			},
+		})
+	}
+
+	commandHandlers["registerpersonalship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("INSERT INTO Titan VALUES(?, ?, ?, ?)")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		stmt2, err := db.Prepare("UPDATE Pilot SET fk_personalship_possesses = ? WHERE pk_userID = ?")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		name := i.ApplicationCommandData().Options[0].StringValue()
+		class := i.ApplicationCommandData().Options[1].StringValue()
+		description := i.ApplicationCommandData().Options[2].StringValue()
+		titanCapacity := i.ApplicationCommandData().Options[3].StringValue()
+
+		_, err = stmt.Exec(&name, &class, &description, &titanCapacity)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		_, err = stmt2.Exec(&name, i.Member.User.ID)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -608,6 +914,42 @@ func addHandlers() {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Successfully removed you from the database",
+			},
+		})
+	}
+
+	commandHandlers["removetitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("DELETE FROM Titan WHERE pk_callsign=?")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		callsign := i.ApplicationCommandData().Options[0].StringValue()
+		_, err = stmt.Exec(&callsign)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully removed your titan from the database",
 			},
 		})
 	}
