@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/mattn/go-sqlite3"
@@ -82,6 +83,13 @@ func addHandlers() {
 		}
 		defer rows.Close()
 
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Loading pilot list...",
+			},
+		})
+
 		// Sends the results
 		var resultString string
 		for rows.Next() {
@@ -110,16 +118,13 @@ func addHandlers() {
 			if specialisation.Valid {
 				specialisationString = ", " + specialisation.String
 			}
-			resultString += fmt.Sprintf("- **%v: **%v%v\n", member.Nick, battalionName, specialisationString)
+			resultString += fmt.Sprintf("- **%v: **%v%v\n", strings.Split(member.Nick, " |")[0], battalionName, specialisationString)
 		}
 		if resultString == "" {
 			resultString = "No results"
 		}
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: resultString,
-			},
+		s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+			Content: resultString,
 		})
 	}
 
@@ -261,6 +266,106 @@ func addHandlers() {
 				return
 			}
 			resultString += fmt.Sprintf("**%v:**\nPlanet in the %v system, controlled by %v. battalion\n\n", planetName, system, battalion)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
+	commandHandlers["listtitans"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT pk_callsign, name, pk_userID FROM Titan INNER JOIN Pilot ON pk_callsign=fk_titan_pilots ORDER BY name")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var callsign string
+			var name string
+			var id string
+			if err := rows.Scan(&callsign, &name, &id); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			member, _ := s.GuildMember(GuildID, id)
+			resultString += fmt.Sprintf("- **%v(%v)**: %v\n", name, callsign, member.Nick)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
+	commandHandlers["listpersonalships"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT pk_name, class, pk_userID FROM PersonalShip INNER JOIN Pilot ON pk_name=fk_personalship_possesses ORDER BY pk_name")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var class string
+			var id string
+			if err := rows.Scan(&name, &class, &id); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			member, _ := s.GuildMember(GuildID, id)
+			resultString += fmt.Sprintf("- **%v (%v)**: %v\n", name, class, member.Nick)
 		}
 		if resultString == "" {
 			resultString = "No results"
@@ -667,7 +772,7 @@ func addHandlers() {
 			var battalion string
 			var capacity string
 			var description string
-			if err := rows.Scan(&name, &class, &capacity, &battalion, &description); err != nil {
+			if err := rows.Scan(&name, &class, &battalion, &capacity, &description); err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{

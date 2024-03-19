@@ -34,20 +34,12 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listplanets",
-			Description: "Shows the list of planets",
+			Name:        "listpersonalships",
+			Description: "List all personal ships",
 		},
 		{
-			Name:        "getpersonalshipwithuser",
-			Description: "Register yourself into the database",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user you want to get the platform of",
-					Required:    true,
-				},
-			},
+			Name:        "listtitans",
+			Description: "List all titans",
 		},
 		{
 			Name:        "gettitanwithuser",
@@ -743,13 +735,13 @@ var (
 			var parentID string
 			if i.Member.User.ID == "1079774043684745267" {
 				parentID = "1195135473643958314"
-			} else if i.Member.User.ID == "384422339393355786" || i.Member.User.ID == "455833801638281216" {
+			} else if i.Member.User.ID == "455833801638281216" {
 				parentID = "1199670542932914227"
 			} else if i.Member.User.ID == "992141217351618591" {
 				parentID = "1196860686903541871"
 			} else if i.Member.User.ID == "1022882533500797118" {
 				parentID = "1196861138793668618"
-			} else if i.Member.User.ID == "989615855472082994" {
+			} else if i.Member.User.ID == "384422339393355786" {
 				parentID = "1196859976912736357"
 			} else {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
