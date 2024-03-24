@@ -38,17 +38,17 @@ var (
 			Description: "List all personal ships",
 		},
 		{
-			Name:        "listtitans",
-			Description: "List all titans",
+			Name:        "listreports",
+			Description: "List all reports",
 		},
 		{
-			Name:        "gettitanwithuser",
-			Description: "Register yourself into the database",
+			Name:        "getreport",
+			Description: "Get a specific report",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user you want to get the platform of",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "number",
+					Description: "The number of the report",
 					Required:    true,
 				},
 			},
@@ -411,7 +411,7 @@ var (
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			hasPermission := false
 			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" {
 					hasPermission = true
 				}
 			}

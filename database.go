@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -366,6 +368,62 @@ func addHandlers() {
 			}
 			member, _ := s.GuildMember(GuildID, id)
 			resultString += fmt.Sprintf("- **%v (%v)**: %v\n", name, class, member.Nick)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
+	commandHandlers["listreports"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT type, timeIndex, authorType, pk_name FROM Report ORDER BY timeIndex")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var reportType int
+			var timeIndex int
+			var authorType int
+			var name string
+			if err := rows.Scan(&reportType, &timeIndex, &authorType, &name); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			var timeString string
+			if timeIndex < 0 {
+				timeString = fmt.Sprintf("0%v", math.Abs(float64(timeIndex)))
+			} else {
+				timeString = fmt.Sprintf("1%v", timeIndex)
+			}
+			resultString += fmt.Sprintf("- #%v%v%v: %v\n", reportType, timeString, authorType, name)
 		}
 		if resultString == "" {
 			resultString = "No results"
@@ -916,6 +974,66 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["getreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT pk_name, fk_pilot_wrote, description FROM Report WHERE timeIndex=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		numberString := fmt.Sprintf("%v", i.ApplicationCommandData().Options[0].IntValue())
+		timeIndex := strings.TrimSuffix(strings.TrimPrefix(numberString, string(numberString[0])), string(numberString[len(numberString)-1]))
+		var timeInt int
+		if timeIndex[0] == '0' {
+			timeInt, _ = strconv.Atoi(strings.TrimPrefix(timeIndex, "0"))
+			timeInt = -timeInt
+		} else {
+			timeInt, _ = strconv.Atoi(strings.TrimPrefix(timeIndex, "1"))
+		}
+
+		// Execute the query with variables
+		rows, err := stmt.Query(timeInt)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var id string
+			var description string
+			if err := rows.Scan(&name, &id, &description); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			member, _ := s.State.Member(i.GuildID, id)
+			resultString += fmt.Sprintf("# REPORT #%v: %v\n## Written by %v\n\n%v", numberString, name, member.Nick, description)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
 		if err != nil {
@@ -1257,6 +1375,236 @@ func addHandlers() {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Successfully removed your ship from the database",
+			},
+		})
+	}
+
+	commandHandlers["addreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("SELECT MAX(timeIndex) FROM Report")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		var maxIndex int
+		rows, err := stmt.Query()
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			if err := rows.Scan(&maxIndex); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+		}
+
+		maxIndex += 10
+
+		member, _ := s.GuildMember(GuildID, i.Member.User.ID)
+		var roles []string
+		var authorIndex int
+		index := -1
+		roles = append(roles, "1195135956471255140")
+		roles = append(roles, "1195858311627669524")
+		roles = append(roles, "1195858271349784639")
+		roles = append(roles, "1195136106811887718")
+		roles = append(roles, "1195858179590987866")
+		roles = append(roles, "1195137362259349504")
+		roles = append(roles, "1195136284478410926")
+		roles = append(roles, "1195137253408768040")
+		roles = append(roles, "1195758308519325716")
+		roles = append(roles, "1195758241221722232")
+		roles = append(roles, "1195758137563689070")
+		roles = append(roles, "1195757362439528549")
+		roles = append(roles, "1195136491148550246")
+		roles = append(roles, "1195708423229165578")
+		roles = append(roles, "1195137477497868458")
+		roles = append(roles, "1195136604373782658")
+		roles = append(roles, "1195711869378367580")
+
+		for i, guildRole := range roles {
+			for _, memberRole := range member.Roles {
+				if guildRole == memberRole {
+					index = i
+				}
+			}
+		}
+
+		if index >= 0 && index <= 3 {
+			authorIndex = 1
+		} else if index >= 4 && index <= 7 {
+			authorIndex = 2
+		} else if index >= 8 && index <= 11 {
+			authorIndex = 3
+		} else if index >= 12 && index <= 14 {
+			authorIndex = 4
+		} else {
+			authorIndex = 5
+		}
+
+		stmt, err = db.Prepare("INSERT INTO Report VALUES (?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		name := i.ApplicationCommandData().Options[0].StringValue()
+		reportType := i.ApplicationCommandData().Options[1].IntValue()
+		report := i.ApplicationCommandData().Options[2].StringValue()
+		_, err = stmt.Exec(&name, &maxIndex, &reportType, &authorIndex, &i.Member.User.ID, &report)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Report added",
+			},
+		})
+	}
+
+	commandHandlers["addreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("SELECT MAX(timeIndex) FROM Report")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		var maxIndex int
+		rows, err := stmt.Query()
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			if err := rows.Scan(&maxIndex); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+		}
+
+		maxIndex += 10
+
+		member, _ := s.GuildMember(GuildID, i.Member.User.ID)
+		var roles []string
+		var authorIndex int
+		index := -1
+		roles = append(roles, "1195135956471255140")
+		roles = append(roles, "1195858311627669524")
+		roles = append(roles, "1195858271349784639")
+		roles = append(roles, "1195136106811887718")
+		roles = append(roles, "1195858179590987866")
+		roles = append(roles, "1195137362259349504")
+		roles = append(roles, "1195136284478410926")
+		roles = append(roles, "1195137253408768040")
+		roles = append(roles, "1195758308519325716")
+		roles = append(roles, "1195758241221722232")
+		roles = append(roles, "1195758137563689070")
+		roles = append(roles, "1195757362439528549")
+		roles = append(roles, "1195136491148550246")
+		roles = append(roles, "1195708423229165578")
+		roles = append(roles, "1195137477497868458")
+		roles = append(roles, "1195136604373782658")
+		roles = append(roles, "1195711869378367580")
+
+		for i, guildRole := range roles {
+			for _, memberRole := range member.Roles {
+				if guildRole == memberRole {
+					index = i
+				}
+			}
+		}
+
+		if index >= 0 && index <= 3 {
+			authorIndex = 1
+		} else if index >= 4 && index <= 7 {
+			authorIndex = 2
+		} else if index >= 8 && index <= 11 {
+			authorIndex = 3
+		} else if index >= 12 && index <= 14 {
+			authorIndex = 4
+		} else {
+			authorIndex = 5
+		}
+
+		stmt, err = db.Prepare("INSERT INTO Report VALUES (?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		name := i.ApplicationCommandData().Options[0].StringValue()
+		reportType := i.ApplicationCommandData().Options[1].IntValue()
+		report := i.ApplicationCommandData().Options[2].StringValue()
+		_, err = stmt.Exec(&name, &maxIndex, &reportType, &authorIndex, &i.Member.User.ID, &report)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Report added",
 			},
 		})
 	}
