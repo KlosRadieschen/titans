@@ -34,21 +34,29 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listpersonalships",
-			Description: "List all personal ships",
-		},
-		{
-			Name:        "listreports",
-			Description: "List all reports",
-		},
-		{
-			Name:        "getreport",
-			Description: "Get a specific report",
+			Name:        "removereport",
+			Description: "Remove a report from the database",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
 					Name:        "number",
-					Description: "The number of the report",
+					Description: "Number of the report you want to remove",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "d20",
+			Description: "Roll a d20",
+		},
+		{
+			Name:        "rolld20for",
+			Description: "Roll a d20 for a specific action",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "action",
+					Description: "The action you are rolling for",
 					Required:    true,
 				},
 			},
