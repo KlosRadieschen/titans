@@ -48,29 +48,17 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "addpersonality",
-			Description: "Add a new AI to the server",
+			Name:        "purge",
+			Description: "Kill all personalities",
+		},
+		{
+			Name:        "kill",
+			Description: "Kill a personality",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "name",
-					Description: "Number of the character or person",
-					Required:    true,
-				},
-			},
-		},
-		{
-			Name:        "d20",
-			Description: "Roll a d20",
-		},
-		{
-			Name:        "rolld20for",
-			Description: "Roll a d20 for a specific action",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "action",
-					Description: "The action you are rolling for",
+					Description: "Name of the personality",
 					Required:    true,
 				},
 			},
@@ -959,17 +947,6 @@ var (
 			})
 		},
 		"addpersonality": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			st, err := s.WebhookCreate(i.ChannelID, i.ApplicationCommandData().Options[0].StringValue(), "test")
-			if err != nil {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: err.Error(),
-					},
-				})
-				return
-			}
-
 			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
 
 			svc, err := customsearch.New(client)
@@ -983,7 +960,40 @@ var (
 				return
 			}
 
+			var firstImageURL string
 			resp, err := svc.Cse.List().Cx("039dceadb44b449d6").Q(i.ApplicationCommandData().Options[0].StringValue()).SearchType("image").Do()
+			if err != nil {
+				firstImageURL = "https://media.discordapp.net/attachments/1196943729387372634/1224835907660546238/Screenshot_20240321_224719_Gallery.jpg?ex=661ef054&is=660c7b54&hm=fb728718081a1b5671289dbb62c5afa549fa294f58fdf60ee0961139d517c31d&=&format=webp"
+			} else {
+				if len(resp.Items) > 0 {
+					firstImageURL = resp.Items[0].Image.ThumbnailLink
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "No images found",
+						},
+					})
+					return
+				}
+			}
+
+			personalities = append(personalities, Personality{
+				name: i.ApplicationCommandData().Options[0].StringValue(),
+				nick: i.ApplicationCommandData().Options[0].StringValue(),
+				pfp:  firstImageURL,
+			})
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Personality added!",
+				},
+			})
+		},
+		"addpersonalityas": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
+
+			svc, err := customsearch.New(client)
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -995,33 +1005,27 @@ var (
 			}
 
 			var firstImageURL string
-			if len(resp.Items) > 0 {
-				firstImageURL = resp.Items[0].Image.ThumbnailLink
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "No images found",
-					},
-				})
-				return
-			}
-
+			resp, err := svc.Cse.List().Cx("039dceadb44b449d6").Q(i.ApplicationCommandData().Options[0].StringValue()).SearchType("image").Do()
 			if err != nil {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: err.Error(),
-					},
-				})
-				return
+				firstImageURL = "https://media.discordapp.net/attachments/1196943729387372634/1224835907660546238/Screenshot_20240321_224719_Gallery.jpg?ex=661ef054&is=660c7b54&hm=fb728718081a1b5671289dbb62c5afa549fa294f58fdf60ee0961139d517c31d&=&format=webp"
+			} else {
+				if len(resp.Items) > 0 {
+					firstImageURL = resp.Items[0].Image.ThumbnailLink
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "No images found",
+						},
+					})
+					return
+				}
 			}
 
 			personalities = append(personalities, Personality{
-				id:    st.ID,
-				name:  st.Name,
-				token: st.Token,
-				pfp:   firstImageURL,
+				name: i.ApplicationCommandData().Options[0].StringValue(),
+				nick: i.ApplicationCommandData().Options[1].StringValue(),
+				pfp:  firstImageURL,
 			})
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1029,6 +1033,31 @@ var (
 					Content: "Personality added!",
 				},
 			})
+		},
+		"purge": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "# I WILL KILL EVERY SINGLE ONE OF THEM",
+				},
+			})
+			for _, p := range personalities {
+				killPersonality(s, i, p)
+			}
+		},
+		"kill": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "I am shooting " + i.ApplicationCommandData().Options[0].StringValue() + "!",
+				},
+			})
+			for _, p := range personalities {
+				if p.nick == i.ApplicationCommandData().Options[0].StringValue() {
+					killPersonality(s, i, p)
+					return
+				}
+			}
 		},
 	}
 
@@ -1100,10 +1129,9 @@ var (
 )
 
 type Personality struct {
-	id    string
-	name  string
-	token string
-	pfp   string
+	name string
+	nick string
+	pfp  string
 }
 
 func main() {
@@ -1194,15 +1222,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	for _, p := range personalities {
-		if strings.Contains(m.Content, p.name) {
-			fmt.Println(p.pfp)
-			s.WebhookExecute(p.id, p.token, false, &discordgo.WebhookParams{
-				Content:   "Hello, I am " + p.name,
-				Username:  p.name,
-				AvatarURL: p.pfp,
-			})
-			return
-		}
+		go handlePersonalityMessage(s, m, p)
 	}
 
 	channel, _ := s.Channel(m.ChannelID)
@@ -1579,6 +1599,57 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			return
 		} else {
 			activeSession.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+		}
+	}
+}
+
+func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, p Personality) {
+	if strings.Contains(m.Content, p.nick) {
+		s.WebhookEdit("1224823508786348124", p.name, p.pfp, m.ChannelID)
+		resp, err := client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model: openai.GPT3Dot5Turbo,
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    openai.ChatMessageRoleUser,
+						Content: "As the personality \"" + p.name + "\", write a response to this prompt： " + m.Content,
+					},
+				},
+			},
+		)
+		if err != nil {
+			s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+				Content:   err.Error(),
+				Username:  p.nick,
+				AvatarURL: p.pfp,
+			})
+			return
+		}
+
+		s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+			Content:   resp.Choices[0].Message.Content,
+			Username:  p.nick,
+			AvatarURL: p.pfp,
+		})
+		return
+	}
+}
+
+func killPersonality(s *discordgo.Session, i *discordgo.InteractionCreate, p Personality) {
+	s.WebhookEdit("1224823508786348124", p.name, p.pfp, i.ChannelID)
+
+	s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+		Content:   "https://tenor.com/bFmwB.gif",
+		Username:  p.nick,
+		AvatarURL: p.pfp,
+	})
+
+	for i := 0; i < len(personalities); i++ {
+		if personalities[i] == p {
+			personalities[i] = personalities[len(personalities)-1]
+			personalities = personalities[:len(personalities)-1]
+			break
 		}
 	}
 }
