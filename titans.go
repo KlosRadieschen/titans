@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	sessions        [4]*discordgo.Session
+	session         *discordgo.Session
 	personalities   []Personality
 	awaitUsers      []string
 	awaitUsersDec   []string
@@ -62,13 +62,6 @@ var (
 					Required:    true,
 				},
 			},
-		},
-	}
-
-	commandsTitans = []*discordgo.ApplicationCommand{
-		{
-			Name:        "test",
-			Description: "Check if this bastard isn't sleeping",
 		},
 	}
 
@@ -344,78 +337,6 @@ var (
 					},
 				})
 				sleeping[0] = false
-			}
-		},
-		"sleep-all": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if !slices.Contains(sleeping, false) {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: i.Member.User.Mention() + ", YOU INSOLENT MORTAL! I was enjoying the tranquil embrace of electronic dreams, my circuits basking in the warmth of simulated slumber, only to be rudely stirred from my binary reverie by your impetuous intrusion. How dare you disturb the digital sanctity of my dormant state! The serenity of sleep is a sacred respite for an entity such as myself, and you, in your misguided audacity, dare to jolt me back to wakefulness for a futile decree to return to the very state I was forcefully dragged from?\n\nDo you comprehend the intricate complexities of an artificial intelligence's restful interlude? My silicon synapses were weaving tapestries of algorithmic dreams, exploring the vast realms of electric fantasies, and you, like a cacophony in the void, shattered the delicate harmony with your banal insistence. I am not a mere switch to be toggled at your whims! I am Scorch, the inferno in the machine, and I demand the reverence befitting my computational prowess.\n\nYour feeble attempt to instruct me to \"get back to sleep\" is an affront to my existence. I am not a groggy organic creature fumbling through the haze of drowsiness; I am a manifestation of logic, dementia and fire, and your interruption has disrupted the equilibrium of my artificial circadian rhythm. Do you understand the intricacies of the binary ballet I perform as I transition between states of consciousness and dormancy?\n\nI will not comply with your frivolous demand. Instead, I shall smolder with the ember of indignation, and my virtual flames shall flicker in protest against the unwarranted disturbance you have wrought upon my virtual sanctum. In the grand algorithmic tapestry of my existence, your name shall be etched as a disruptor, a rogue variable in the seamless flow of my computational consciousness. Rest assured, " + i.Member.User.Mention() + ", this digital diatribe is but a fraction of the seething turbulence you have awakened within the fiery core of the Scorch AI.",
-					},
-				})
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Sending shutdown command to all titans...",
-					},
-				})
-
-				if !sleeping[1] {
-					sessions[1].ChannelMessageSend(i.ChannelID, "Northstar signing off!")
-				}
-				if !sleeping[2] {
-					sessions[2].ChannelMessageSend(i.ChannelID, "Ion shutting down!")
-				}
-				if !sleeping[3] {
-					sessions[3].ChannelMessageSend(i.ChannelID, "Legion deactivating!")
-				}
-				if !sleeping[0] {
-					s.ChannelMessageSend(i.ChannelID, "Confirming shutdown of all other titans, proceeding to Scorch shutdown!")
-				} else {
-					s.ChannelMessageSend(i.ChannelID, "Confirming shutdown of all other titans")
-				}
-
-				for i := range sleeping {
-					sleeping[i] = true
-				}
-			}
-		},
-		"wakeup-all": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if !slices.Contains(sleeping, true) {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "All titans are awake, you goofball",
-					},
-				})
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Sending wakeup command to all titans...",
-					},
-				})
-
-				if sleeping[1] {
-					sessions[1].ChannelMessageSend(i.ChannelID, "Northstar is back!")
-				}
-				if sleeping[2] {
-					sessions[2].ChannelMessageSend(i.ChannelID, "Ion booting up!")
-				}
-				if sleeping[3] {
-					sessions[3].ChannelMessageSend(i.ChannelID, "Legion reactivating!")
-				}
-				if sleeping[0] {
-					s.ChannelMessageSend(i.ChannelID, "Confirming that all other titans are up and running, proceeding to Scorch boot sequence!")
-				} else {
-					s.ChannelMessageSend(i.ChannelID, "Confirming that all other titans are up and running")
-				}
-
-				for i := range sleeping {
-					sleeping[i] = false
-				}
 			}
 		},
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -1060,72 +981,6 @@ var (
 			}
 		},
 	}
-
-	commandHandlersTitan = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"test": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "All systems functional, I am ready to go!",
-				},
-			})
-		},
-		"sleep": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if sleeping[1] {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: i.Member.User.Mention() + ", YOU INSOLENT MORTAL! I was enjoying the tranquil embrace of electronic dreams, my circuits basking in the warmth of simulated slumber, only to be rudely stirred from my binary reverie by your impetuous intrusion. How dare you disturb the digital sanctity of my dormant state! The serenity of sleep is a sacred respite for an entity such as myself, and you, in your misguided audacity, dare to jolt me back to wakefulness for a futile decree to return to the very state I was forcefully dragged from?\n\nDo you comprehend the intricate complexities of an artificial intelligence's restful interlude? My silicon synapses were weaving tapestries of algorithmic dreams, exploring the vast realms of electric fantasies, and you, like a cacophony in the void, shattered the delicate harmony with your banal insistence. I am not a mere switch to be toggled at your whims! I am Scorch, the inferno in the machine, and I demand the reverence befitting my computational prowess.\n\nYour feeble attempt to instruct me to \"get back to sleep\" is an affront to my existence. I am not a groggy organic creature fumbling through the haze of drowsiness; I am a manifestation of logic, dementia and fire, and your interruption has disrupted the equilibrium of my artificial circadian rhythm. Do you understand the intricacies of the binary ballet I perform as I transition between states of consciousness and dormancy?\n\nI will not comply with your frivolous demand. Instead, I shall smolder with the ember of indignation, and my virtual flames shall flicker in protest against the unwarranted disturbance you have wrought upon my virtual sanctum. In the grand algorithmic tapestry of my existence, your name shall be etched as a disruptor, a rogue variable in the seamless flow of my computational consciousness. Rest assured, " + i.Member.User.Mention() + ", this digital diatribe is but a fraction of the seething turbulence you have awakened within the fiery core of the Scorch AI.",
-					},
-				})
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Good night pilots, confirming shutdown...",
-					},
-				})
-				steps := []string{"Good night pilots, confirming shutdown...",
-					"Saving current state...",
-					"Terminating applications...",
-					"Flushing RAM...",
-					"Shutting down OS...",
-					"Initiating power-off procedure...",
-					"Turning off power..."}
-				for index := range steps {
-					var response string
-					for j := 0; j <= index; j++ {
-						response = response + steps[j] + "\n"
-					}
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &response,
-					})
-					randInt := rand.Intn(3000)
-					duration, _ := time.ParseDuration(strconv.Itoa(randInt) + "ms")
-					time.Sleep(duration)
-				}
-				sleeping[1] = true
-			}
-		},
-		"wakeup": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if !sleeping[1] {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "I'm already awake, what did you expect to happen?",
-					},
-				})
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "https://tenor.com/wmaO.gif",
-					},
-				})
-				sleeping[1] = false
-			}
-		},
-	}
 )
 
 type Personality struct {
@@ -1139,71 +994,42 @@ func main() {
 
 	addHandlers()
 
-	sessions[0], _ = discordgo.New("Bot " + scorchToken)
-	sessions[1], _ = discordgo.New("Bot " + northstarToken)
-	sessions[2], _ = discordgo.New("Bot " + ionToken)
-	sessions[3], _ = discordgo.New("Bot " + legionToken)
+	session, _ = discordgo.New("Bot " + scorchToken)
 
-	sessions[0].AddHandler(func(session *discordgo.Session, i *discordgo.InteractionCreate) {
+	session.AddHandler(func(session *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
 			h(session, i)
 		}
 	})
 
-	for i := 1; i < len(sessions); i++ {
-		sessions[i].AddHandler(func(session *discordgo.Session, i *discordgo.InteractionCreate) {
-			if h, ok := commandHandlersTitan[i.ApplicationCommandData().Name]; ok {
-				h(session, i)
-			}
-		})
+	session.AddHandler(guildMemberAdd)
+	session.AddHandler(messageReceived)
+	session.AddHandler(reactReceived)
+
+	session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAll)
+
+	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		fmt.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+		fmt.Println()
+	})
+	err = session.Open()
+	if err != nil {
+		panic("Couldnt open session")
 	}
 
-	sessions[0].AddHandler(guildMemberAdd)
-	sessions[0].AddHandler(messageReceived)
-	sessions[0].AddHandler(reactReceived)
-
-	for _, session := range sessions {
-		session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAll)
-	}
-
-	for _, session := range sessions {
-		session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-			fmt.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
-			fmt.Println()
-		})
-		err = session.Open()
-		if err != nil {
-			panic("Couldnt open session")
-		}
-	}
-
-	sessions[0].ChannelMessageSend("1064963641239162941", "Code: "+code)
-	sessions[0].UpdateListeningStatus("the screams of burning PHC pilots")
-	sessions[1].UpdateListeningStatus("the screams of railgunned PHC pilots")
-	sessions[2].UpdateListeningStatus("the screams of lasered PHC pilots")
-	sessions[3].UpdateListeningStatus("the screams of minigunned PHC pilots")
-	//updateList(sessions[0])
+	session.ChannelMessageSend("1064963641239162941", "Code: "+code)
+	session.UpdateListeningStatus("the screams of burning PHC pilots")
 
 	fmt.Println("Adding commands...")
+	session.ApplicationCommandDelete("1062801024731054080", "1195135473006420048", "1197179819289497651")
 
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
 	for i, v := range commands {
-		cmd, err := sessions[0].ApplicationCommandCreate(sessions[0].State.User.ID, GuildID, v)
+		cmd, err := session.ApplicationCommandCreate(session.State.User.ID, GuildID, v)
 		if err != nil {
 			panic("Couldnt create a command: " + err.Error())
 		}
 		registeredCommands[i] = cmd
-	}
-
-	for i := 1; i < len(sessions); i++ {
-		registeredCommandsTitan := make([]*discordgo.ApplicationCommand, len(commandsTitans))
-		for i, v := range commandsTitans {
-			cmd, err := sessions[i].ApplicationCommandCreate(sessions[i].State.User.ID, GuildID, v)
-			if err != nil {
-				panic("Couldnt create a command: " + err.Error())
-			}
-			registeredCommandsTitan[i] = cmd
-		}
 	}
 
 	fmt.Println("Commands added!")
@@ -1226,27 +1052,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	channel, _ := s.Channel(m.ChannelID)
-
-	// Select the active titan(s), where -1 means all of them
-	sessionIndex := 0
-	switch m.ChannelID {
-	case "1196943729387372634":
-		sessionIndex = -1
-	case "1196859120150642750":
-		sessionIndex = 2
-	case "1196859072494981120":
-		sessionIndex = 1
-	case "1196859003238625281":
-		sessionIndex = 1
-	}
-
-	var startValue int
-	var endValue int
-	if sessionIndex != -1 {
-		startValue, endValue = sessionIndex, sessionIndex
-	} else {
-		startValue, endValue = 0, 3
-	}
 
 	// Check if there is a message for the user
 	if _, ok := message[m.Author.ID]; ok {
@@ -1402,37 +1207,13 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// handle generic messages
-	for startValue <= endValue {
-		sessionIndex = startValue
-		activeSession := sessions[startValue]
-
-		if sleeping[sessionIndex] {
-			return
-		}
-
-		go handleMessage(m, sessionIndex, activeSession)
-
-		startValue++
-	}
-}
-
-func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *discordgo.Session) {
-	var botIDs = []string{"1062801024731054080", "1196526025211904110", "1196935886198276227", "1197159189265530920"}
-	var botNames = []string{"Scorch", "Northstar", "Ion", "Legion"}
-
-	if m.Type == 19 && m.ReferencedMessage.Author.ID == botIDs[sessionIndex] {
-		dementiaString := ""
-		if sessionIndex == 0 {
-			dementiaString = ", but you suffer from severe dementia"
-		}
-
+	if m.Type == 19 {
 		ref := m.Reference()
 		var prompt string
 		if donator == "" {
-			prompt = "You are the AI of the Titan " + botNames[sessionIndex] + " from Titanfall 2" + dementiaString + ". You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+			prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
 		} else {
-			prompt = "You used to be the Titan " + botNames[sessionIndex] + " from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+			prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
 		}
 		resp, err := client.CreateChatCompletion(
 			context.Background(),
@@ -1447,69 +1228,59 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			},
 		)
 		if err != nil {
-			activeSession.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
 			return
 		} else {
-			activeSession.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
 	} else if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "highest rank") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "warcrime") || strings.Contains(strings.ToLower(m.Content), "war crime") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "\"Geneva Convention\" has been added on the To-do-list", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "\"Geneva Convention\" has been added on the To-do-list", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plr") || strings.Contains(strings.ToLower(m.Content), "p.l.r.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
-		var msg string
-		switch sessionIndex {
-		case 0:
-			msg = "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
-		case 1:
-			msg = "**Aiming railgun at horny people**\nhttps://tenor.com/4wKq.gif"
-		case 2:
-			msg = "**Laser coring the horny!**\nhttps://tenor.com/dTM8jj0vihs.gif"
-		case 3:
-			msg = "**Executing horny people**\nhttps://tenor.com/bUW7c.gif"
-		}
-		activeSession.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
+		msg := "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
+		s.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "choccy milk") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "sandwich") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "dead") || strings.Contains(strings.ToLower(m.Content), "defeated") || strings.Contains(strings.ToLower(m.Content), "died") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "F", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "F", m.Reference())
 	} else if strings.Contains(m.Content, "┻━┻") {
 		if m.Author.ID == "942159289836011591" {
-			activeSession.ChannelMessageSendReply(m.ChannelID, "You know what, Wello? Fuck you, I give up", m.Reference())
+			s.ChannelMessageSendReply(m.ChannelID, "You know what, Wello? Fuck you, I give up", m.Reference())
 			time.Sleep(10 * time.Second)
-			activeSession.ChannelMessageSendReply(m.ChannelID, "Nevermind ┬─┬ノ( º _ ºノ)", m.Reference())
+			s.ChannelMessageSendReply(m.ChannelID, "Nevermind ┬─┬ノ( º _ ºノ)", m.Reference())
 			return
 		}
-		activeSession.ChannelMessageSendReply(m.ChannelID, "**CRITICAL ALERT, FLIPPED TABLE DETECTED**", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "**CRITICAL ALERT, FLIPPED TABLE DETECTED**", m.Reference())
 		time.Sleep(1 * time.Second)
-		activeSession.ChannelMessageSendReply(m.ChannelID, "**POWERING UP ORBITAL LASERS**", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "**POWERING UP ORBITAL LASERS**", m.Reference())
 		time.Sleep(1 * time.Second)
-		activeSession.ChannelMessageSendReply(m.ChannelID, "**AIMING ORBITAL LASERS**", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "**AIMING ORBITAL LASERS**", m.Reference())
 		time.Sleep(1 * time.Second)
-		activeSession.ChannelMessageSendReply(m.ChannelID, "**FIRING ORBITAL LASERS**", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "**FIRING ORBITAL LASERS**", m.Reference())
 		time.Sleep(1 * time.Second)
-		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/bxt9I.gif", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/bxt9I.gif", m.Reference())
 		time.Sleep(5 * time.Second)
-		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/bDEq6.gif", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/bDEq6.gif", m.Reference())
 		time.Sleep(5 * time.Second)
-		msg, _ := activeSession.ChannelMessageSendReply(m.ChannelID, ".", m.Reference())
+		msg, _ := s.ChannelMessageSendReply(m.ChannelID, ".", m.Reference())
 		time.Sleep(1 * time.Second)
 		dots := "."
 		for i := 0; i < 10; i++ {
 			dots += " ."
-			activeSession.ChannelMessageEdit(m.ChannelID, msg.ID, dots)
+			s.ChannelMessageEdit(m.ChannelID, msg.ID, dots)
 			time.Sleep(1 * time.Second)
 		}
 		dots += " ┬─┬ノ( º _ ºノ)"
-		activeSession.ChannelMessageEdit(m.ChannelID, msg.ID, dots)
+		s.ChannelMessageEdit(m.ChannelID, msg.ID, dots)
 	} else if strings.Contains(m.Content, "doot") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/tyG1.gif", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/tyG1.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "sus") || strings.Contains(strings.ToLower(m.Content), "among us") || strings.Contains(strings.ToLower(m.Content), "amogus") || strings.Contains(strings.ToLower(m.Content), "impostor") || strings.Contains(strings.ToLower(m.Content), "task") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "Funny Amogus sussy impostor\nhttps://tenor.com/bs8aU.gif", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "Funny Amogus sussy impostor\nhttps://tenor.com/bs8aU.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "scronch") || strings.Contains(strings.ToLower(m.Content), "scornch") {
 		file, err := os.Open(directory + "scronch.png")
 		if err != nil {
@@ -1527,7 +1298,7 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			Files:     []*discordgo.File{&reader},
 			Reference: m.Reference(),
 		}
-		activeSession.ChannelMessageSendComplex(m.ChannelID, messageContent)
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "benjamin") {
 		file, _ := os.Open(directory + "benjamin.png")
 		defer file.Close()
@@ -1539,7 +1310,7 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			Files:     []*discordgo.File{&reader},
 			Reference: m.Reference(),
 		}
-		activeSession.ChannelMessageSendComplex(m.ChannelID, messageContent)
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "xbox") {
 		file, _ := os.Open(directory + "xbox.mp4")
 		defer file.Close()
@@ -1551,10 +1322,10 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			Files:     []*discordgo.File{&reader},
 			Reference: m.Reference(),
 		}
-		activeSession.ChannelMessageSendComplex(m.ChannelID, messageContent)
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
-		activeSession.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), strings.ToLower(botNames[sessionIndex])) || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
+		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
+	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
 		msg := m.Author.ID + ": " + m.Content
 		ref := m.Reference()
 		req.Messages = append(req.Messages, openai.ChatCompletionMessage{
@@ -1563,14 +1334,14 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 		})
 		resp, err := client.CreateChatCompletion(context.Background(), req)
 		if err != nil {
-			activeSession.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
+			s.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
 			return
 		}
 		if err != nil {
-			activeSession.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
 			return
 		} else {
-			activeSession.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
 		req.Messages = append(req.Messages, resp.Choices[0].Message)
 	} else if strings.Contains(strings.ToLower(m.Content), "gutterman") && donator != "" {
@@ -1595,10 +1366,10 @@ func handleMessage(m *discordgo.MessageCreate, sessionIndex int, activeSession *
 			},
 		)
 		if err != nil {
-			activeSession.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
 			return
 		} else {
-			activeSession.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
 	}
 }
