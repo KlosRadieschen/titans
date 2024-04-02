@@ -48,8 +48,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "purge",
-			Description: "Kill all personalities",
+			Name:        "listpersonalities",
+			Description: "List currently active personalities",
 		},
 		{
 			Name:        "kill",
@@ -980,6 +980,18 @@ var (
 				}
 			}
 		},
+		"listpersonalities": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			msg := ""
+			for _, p := range personalities {
+				msg += "- " + p.nick + "\n"
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: msg,
+				},
+			})
+		},
 	}
 )
 
@@ -1207,7 +1219,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.Type == 19 {
+	if m.Type == 19 && strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
 		ref := m.Reference()
 		var prompt string
 		if donator == "" {
