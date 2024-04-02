@@ -1887,7 +1887,7 @@ func addHandlers() {
 			})
 		}
 
-		randInt := rand.Intn(int(i.ApplicationCommandData().Options[0].IntValue())-1) + 1
+		randInt := rand.Intn(int(i.ApplicationCommandData().Options[0].IntValue())) + 1
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1918,7 +1918,7 @@ func addHandlers() {
 			})
 		}
 
-		randInt := rand.Intn(int(i.ApplicationCommandData().Options[1].IntValue())-1) + 1
+		randInt := rand.Intn(int(i.ApplicationCommandData().Options[1].IntValue())) + 1
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
