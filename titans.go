@@ -48,17 +48,17 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listpersonalities",
-			Description: "List currently active personalities",
+			Name:        "listlawcategories",
+			Description: "List all law categories",
 		},
 		{
-			Name:        "kill",
-			Description: "Kill a personality",
+			Name:        "listlaws",
+			Description: "List all laws in a category",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "name",
-					Description: "Name of the personality",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "categorynumber",
+					Description: "The NUMBER of the category",
 					Required:    true,
 				},
 			},
@@ -765,6 +765,16 @@ var (
 			})
 		},
 		"message": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.Member.User.ID == donator {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
 			message[i.ApplicationCommandData().Options[0].UserValue(nil).ID] = append(message[i.ApplicationCommandData().Options[0].UserValue(nil).ID], "You have a message from "+i.Member.User.Mention()+": "+i.ApplicationCommandData().Options[1].StringValue())
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -774,6 +784,16 @@ var (
 			})
 		},
 		"poll": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.Member.User.ID == donator {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
 			duration, err := time.ParseDuration(i.ApplicationCommandData().Options[1].StringValue())
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -868,6 +888,24 @@ var (
 			})
 		},
 		"addpersonality": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.Member.User.ID == donator {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Feature is unavailable right now",
+				},
+			})
+			return
+
 			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
 
 			svc, err := customsearch.New(client)
@@ -912,6 +950,24 @@ var (
 			})
 		},
 		"addpersonalityas": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.Member.User.ID == donator {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Feature is unavailable right now",
+				},
+			})
+			return
+
 			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
 
 			svc, err := customsearch.New(client)
@@ -1219,33 +1275,37 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.Type == 19 && strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
-		ref := m.Reference()
-		var prompt string
-		if donator == "" {
-			prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-		} else {
-			prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-		}
-		resp, err := client.CreateChatCompletion(
-			context.Background(),
-			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo,
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: prompt,
+	/*
+		if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
+			ref := m.Reference()
+			var prompt string
+			if donator == "" {
+				prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+			} else {
+				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+			}
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: prompt,
+						},
 					},
 				},
-			},
-		)
-		if err != nil {
-			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-			return
-		} else {
-			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			)
+			if err != nil {
+				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+				return
+			} else {
+				s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			}
 		}
-	} else if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
+	*/
+
+	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
 		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "highest rank") {
 		s.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
@@ -1263,9 +1323,8 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else if strings.Contains(m.Content, "┻━┻") {
 		if m.Author.ID == "942159289836011591" {
 			s.ChannelMessageSendReply(m.ChannelID, "You know what, Wello? Fuck you, I give up", m.Reference())
-			time.Sleep(10 * time.Second)
-			s.ChannelMessageSendReply(m.ChannelID, "Nevermind ┬─┬ノ( º _ ºノ)", m.Reference())
-			return
+			time.Sleep(1 * time.Second)
+			s.ChannelMessageSendReply(m.ChannelID, "just kidding", m.Reference())
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "**CRITICAL ALERT, FLIPPED TABLE DETECTED**", m.Reference())
 		time.Sleep(1 * time.Second)
@@ -1337,53 +1396,75 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
-		msg := m.Author.ID + ": " + m.Content
-		ref := m.Reference()
-		req.Messages = append(req.Messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: msg,
-		})
-		resp, err := client.CreateChatCompletion(context.Background(), req)
-		if err != nil {
-			s.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
-			return
-		}
-		if err != nil {
-			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-			return
-		} else {
-			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
-		}
-		req.Messages = append(req.Messages, resp.Choices[0].Message)
-	} else if strings.Contains(strings.ToLower(m.Content), "gutterman") && donator != "" {
-		var prompt string
-		if m.Type == 19 {
-			prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following messages and your next response is the reply to the last message.\n\nMessage by user 1: " + m.ReferencedMessage.Content + "\n\nMessage by user 2:" + m.Content + "\n\n Your response: "
-		} else {
-			prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following message and your response is the reply to that message.\n\n Message:" + m.Content + "\n\nReply: "
-		}
-		ref := m.Reference()
-		client := openai.NewClient(openAIToken)
-		resp, err := client.CreateChatCompletion(
-			context.Background(),
-			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo,
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: prompt,
+	}
+	/*
+		else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
+			msg := m.Author.ID + ": " + m.Content
+			ref := m.Reference()
+			req.Messages = append(req.Messages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: msg,
+			})
+			resp, err := client.CreateChatCompletion(context.Background(), req)
+			if err != nil {
+				s.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
+				return
+			}
+			if err != nil {
+				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+				return
+			} else {
+				resultString := resp.Choices[0].Message.Content
+				if len(resultString) >= 2000 {
+					chunks := make([]string, 0, len(resultString)/2000+1)
+					currentChunk := ""
+					for _, c := range resultString {
+						if len(currentChunk) >= 1999 {
+							chunks = append(chunks, currentChunk)
+							currentChunk = ""
+						}
+						currentChunk += string(c)
+					}
+					if currentChunk != "" {
+						chunks = append(chunks, currentChunk)
+					}
+					for _, chunk := range chunks[0:] {
+						s.ChannelMessageSendReply(m.ChannelID, chunk, ref)
+					}
+				} else {
+					s.ChannelMessageSendReply(m.ChannelID, resultString, ref)
+				}
+			}
+			req.Messages = append(req.Messages, resp.Choices[0].Message)
+		} else if strings.Contains(strings.ToLower(m.Content), "gutterman") && donator != "" {
+			var prompt string
+			if m.Type == 19 {
+				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following messages and your next response is the reply to the last message.\n\nMessage by user 1: " + m.ReferencedMessage.Content + "\n\nMessage by user 2:" + m.Content + "\n\n Your response: "
+			} else {
+				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following message and your response is the reply to that message.\n\n Message:" + m.Content + "\n\nReply: "
+			}
+			ref := m.Reference()
+			client := openai.NewClient(openAIToken)
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: prompt,
+						},
 					},
 				},
-			},
-		)
-		if err != nil {
-			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-			return
-		} else {
-			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			)
+			if err != nil {
+				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+				return
+			} else {
+				s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+			}
 		}
-	}
+	*/
 }
 
 func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, p Personality) {

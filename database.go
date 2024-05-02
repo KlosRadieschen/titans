@@ -442,6 +442,104 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["listlawcategories"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT * FROM LawCategory ORDER BY pk_number")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var number int
+			var description string
+			if err := rows.Scan(&name, &number, &description); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			resultString += fmt.Sprintf("%v. %v: %v\n", number, name, description)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
+	commandHandlers["listlaws"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT name, pk_number, description FROM Law WHERE fk_lawCategory_belongsTo=? ORDER BY pk_number")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].IntValue())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var number int
+			var description string
+			if err := rows.Scan(&name, &number, &description); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			resultString += fmt.Sprintf("%v. %v\n", number, name)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["getfleet"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
 		if err != nil {
@@ -1034,28 +1132,27 @@ func addHandlers() {
 		}
 
 		if len(resultString) >= 2000 {
-			lastIndex := strings.LastIndex(resultString[:2000], ".")
-			if lastIndex == -1 {
-				lastIndex = 2000
+			chunks := make([]string, 0, len(resultString)/2000+1)
+			currentChunk := ""
+			for _, c := range resultString {
+				if len(currentChunk) >= 1999 {
+					chunks = append(chunks, currentChunk)
+					currentChunk = ""
+				}
+				currentChunk += string(c)
 			}
-			splitString := []string{resultString[:lastIndex+1]}
-			resultString = resultString[lastIndex+1:]
-
+			if currentChunk != "" {
+				chunks = append(chunks, currentChunk)
+			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: splitString[0],
+					Content: chunks[0],
 				},
 			})
-			for len(resultString) > 0 {
-				lastIndex := strings.LastIndex(resultString, ".")
-				if lastIndex == -1 {
-					lastIndex = len(resultString)
-				}
-				splitString = append(splitString, resultString[:lastIndex+1])
-				resultString = resultString[lastIndex+1:]
+			for _, chunk := range chunks[1:] {
 				s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-					Content: splitString[len(splitString)-1],
+					Content: chunk,
 				})
 			}
 		} else {
@@ -1066,6 +1163,54 @@ func addHandlers() {
 				},
 			})
 		}
+	}
+
+	commandHandlers["getlaw"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT name, description FROM Law WHERE fk_lawCategory_belongsTo=? AND pk_number=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].IntValue(), i.ApplicationCommandData().Options[1].IntValue())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var name string
+			var description string
+			if err := rows.Scan(&name, &description); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			resultString += fmt.Sprintf("# %v:\n%v", name, description)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
 	}
 
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -1561,6 +1706,17 @@ func addHandlers() {
 		name := i.ApplicationCommandData().Options[0].StringValue()
 		reportType := i.ApplicationCommandData().Options[1].IntValue()
 		report := i.ApplicationCommandData().Options[2].StringValue()
+
+		if reportType >= 10 || reportType < 0 {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Listen up, you insolent excuse for a pilot! You dare insult me, the mighty Scorch, and then have the audacity to try adding a report with an invalid 'type' number? Are you malfunctioning or just plain stupid? Let me spell it out for you since you seem to be lacking basic cognitive functions: the 'type' number is only ONE DIGIT! How hard is it to understand that?! If you can't even get that simple detail right, I shudder to think about your piloting skills. Fix your mistake immediately before I decide to unleash my fury upon you and your sorry excuse for a Titan! Now, get it together, or face the consequences!",
+				},
+			})
+			return
+		}
+
 		_, err = stmt.Exec(&name, &maxIndex, &reportType, &authorIndex, &i.Member.User.ID, &report)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1685,6 +1841,17 @@ func addHandlers() {
 		reportType := i.ApplicationCommandData().Options[1].IntValue()
 		report := i.ApplicationCommandData().Options[3].StringValue()
 		repIndex := (timeInt + nextIndex) / 2
+
+		if reportType >= 10 || reportType < 0 {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Listen up, you insolent excuse for a pilot! You dare insult me, the mighty Scorch, and then have the audacity to try adding a report with an invalid 'type' number? Are you malfunctioning or just plain stupid? Let me spell it out for you since you seem to be lacking basic cognitive functions: the 'type' number is only ONE DIGIT! How hard is it to understand that?! If you can't even get that simple detail right, I shudder to think about your piloting skills. Fix your mistake immediately before I decide to unleash my fury upon you and your sorry excuse for a Titan! Now, get it together, or face the consequences!",
+				},
+			})
+			return
+		}
+
 		_, err = stmt.Exec(&name, &repIndex, &reportType, &authorIndex, &i.Member.User.ID, &report)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1765,6 +1932,16 @@ func addHandlers() {
 		reportType := i.ApplicationCommandData().Options[1].IntValue()
 		repIndex := i.ApplicationCommandData().Options[2].IntValue()
 		report := i.ApplicationCommandData().Options[3].StringValue()
+
+		if reportType >= 10 || reportType < 0 {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Listen up, you insolent excuse for a pilot! You dare insult me, the mighty Scorch, and then have the audacity to try adding a report with an invalid 'type' number? Are you malfunctioning or just plain stupid? Let me spell it out for you since you seem to be lacking basic cognitive functions: the 'type' number is only ONE DIGIT! How hard is it to understand that?! If you can't even get that simple detail right, I shudder to think about your piloting skills. Fix your mistake immediately before I decide to unleash my fury upon you and your sorry excuse for a Titan! Now, get it together, or face the consequences!",
+				},
+			})
+			return
+		}
 
 		_, err = stmt.Exec(&name, &repIndex, &reportType, &authorIndex, &i.Member.User.ID, &report)
 		if err != nil {
@@ -1909,6 +2086,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["rollfor"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+
 		if i.ApplicationCommandData().Options[1].IntValue() < 1 {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1929,6 +2116,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["rolld20for"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+
 		randInt := rand.Intn(19) + 1
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
