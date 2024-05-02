@@ -5,7 +5,7 @@ go 1.21.1
 require (
 	github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/sashabaranov/go-openai v1.17.11
 	github.com/tkuchiki/go-timezone v0.2.3
 	google.golang.org/api v0.172.0
@@ -14,6 +14,7 @@ require (
 require (
 	cloud.google.com/go/compute v1.23.4 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

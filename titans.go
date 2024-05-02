@@ -48,17 +48,17 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listlawcategories",
-			Description: "List all law categories",
+			Name:        "removetimezone",
+			Description: "Remove your timezone",
 		},
 		{
-			Name:        "getusertimezone",
-			Description: "Get the timezone of a user",
+			Name:        "comparetimezones",
+			Description: "Compare your timezone with that of another user",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
 					Name:        "user",
-					Description: "User to get the timezone of",
+					Description: "User to compare your timezone with",
 					Required:    true,
 				},
 			},
