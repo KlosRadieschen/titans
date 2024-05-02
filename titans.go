@@ -52,13 +52,13 @@ var (
 			Description: "List all law categories",
 		},
 		{
-			Name:        "listlaws",
-			Description: "List all laws in a category",
+			Name:        "getusertimezone",
+			Description: "Get the timezone of a user",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "categorynumber",
-					Description: "The NUMBER of the category",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "User to get the timezone of",
 					Required:    true,
 				},
 			},

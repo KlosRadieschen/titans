@@ -12,6 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/tkuchiki/go-timezone"
 )
 
 func addHandlers() {
@@ -1213,6 +1214,65 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["getusertimezone"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		tz := timezone.New()
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT value FROM Timezone WHERE pk_pilot_isIn=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var identifier string
+			if err := rows.Scan(&identifier); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			tzInfo, _ := tz.GetTzInfo(identifier)
+			abbr, err := tz.GetTimezoneAbbreviation(identifier, tzInfo.HasDST())
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			resultString += fmt.Sprintf("%v (UTC%v)\n", abbr, tzInfo.StandardOffsetHHMM())
+		}
+		if resultString == "" {
+			resultString = "User has not registered their timeTone"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
 		if err != nil {
@@ -1408,6 +1468,66 @@ func addHandlers() {
 		}
 
 		_, err = stmt2.Exec(&name, i.Member.User.ID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully registered",
+			},
+		})
+	}
+
+	commandHandlers["registertimezone"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		db, err := sql.Open("sqlite3", "/home/Nicolas/go-workspace/src/titans/AHA.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		// Insert data into the table
+		stmt, err := db.Prepare("INSERT INTO Timezone VALUES(?, ?)")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer stmt.Close()
+
+		// Execute the prepared statement with actual values
+		tz := timezone.New()
+		timezone := i.ApplicationCommandData().Options[0].StringValue()
+		user := i.Member.User.ID
+		all := tz.Timezones()
+
+		// Check if timezone is in all
+		isThere := false
+		for _, t := range all {
+			for _, t2 := range t {
+				if t2 == timezone {
+					isThere = true
+					break
+				}
+			}
+		}
+		if !isThere {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Invalid timezone, please choose identifier from this list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
+				},
+			})
+			return
+		}
+
+		_, err = stmt.Exec(&user, &timezone)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
