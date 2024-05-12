@@ -18,7 +18,7 @@ import (
 
 func addHandlers() {
 	commandHandlers["listbattalions"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -70,7 +70,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listpilots"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -137,7 +137,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listplatforms"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -189,7 +189,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listbases"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -240,7 +240,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listplanets"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -290,7 +290,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listtitans"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -345,7 +345,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listpersonalships"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -396,7 +396,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listreports"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -452,8 +452,65 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["listrecentreports"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT type, timeIndex, authorType, pk_name FROM Report ORDER BY timeIndex DESC LIMIT ?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query(i.ApplicationCommandData().Options[0].IntValue())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var reportType int
+			var timeIndex int
+			var authorType int
+			var name string
+			if err := rows.Scan(&reportType, &timeIndex, &authorType, &name); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			var timeString string
+			if timeIndex < 0 {
+				timeString = fmt.Sprintf("0%v", math.Abs(float64(timeIndex)))
+			} else {
+				timeString = fmt.Sprintf("1%v", timeIndex)
+			}
+			resultString += fmt.Sprintf("- #%v%v%v: %v\n", reportType, timeString, authorType, name)
+		}
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["listlawcategories"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -503,7 +560,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["listlaws"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -552,8 +609,75 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["listtimezones"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		tz := timezone.New()
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		//
+		stmt, err := db.Prepare("SELECT * FROM Timezone")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		// Execute the query with variables
+		rows, err := stmt.Query()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		// Sends the results
+		var resultString string
+		for rows.Next() {
+			var userID string
+			var identifier string
+			if err := rows.Scan(&userID, &identifier); err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			tzInfo, _ := tz.GetTzInfo(identifier)
+			abbr, err := tz.GetTimezoneAbbreviation(identifier, tzInfo.HasDST())
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			tzTime, _ := tz.FixedTimezone(time.Now(), identifier)
+			member, _ := s.State.Member(GuildID, userID)
+			if tzInfo.StandardOffset()/60/60+1 < 0 {
+				resultString += fmt.Sprintf("- %v: %v (UTC%v), local time %v\n", member.Nick, abbr, tzInfo.StandardOffset()/60/60+1, tzTime.Format("15:04"))
+			} else {
+				resultString += fmt.Sprintf("- %v: %v (UTC+%v), local time %v\n", member.Nick, abbr, tzInfo.StandardOffset()/60/60+1, tzTime.Format("15:04"))
+			}
+		}
+		if resultString == "" {
+			resultString = "No registered timezones"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+
 	commandHandlers["getfleet"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -609,7 +733,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getplanet"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -660,7 +784,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getplanet"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -711,7 +835,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["gettitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -765,7 +889,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["gettitanwithuser"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -819,7 +943,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getpersonalship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -872,7 +996,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getpersonalshipwithuser"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -925,7 +1049,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getflagship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -977,7 +1101,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getpilot"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1045,7 +1169,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getplatform"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1101,7 +1225,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1189,7 +1313,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["getlaw"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1239,7 +1363,7 @@ func addHandlers() {
 
 	commandHandlers["getusertimezone"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		tz := timezone.New()
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1304,7 +1428,7 @@ func addHandlers() {
 
 	commandHandlers["comparetimezones"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		tz := timezone.New()
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1420,7 +1544,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1496,7 +1629,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["registertitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1577,7 +1719,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["registerpersonalship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1636,7 +1787,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["registertimezone"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1697,7 +1848,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["updateplatform"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1736,7 +1896,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["updatestory"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1775,7 +1944,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["remove"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1812,7 +1981,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["removetitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1849,7 +2018,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["removepersonalship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1886,7 +2055,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["removetimezone"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -1923,7 +2092,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -2050,7 +2228,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreportafter"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -2186,7 +2373,16 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreportatindex"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		if i.Member.User.ID == donator {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/bN5md.gif",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -2278,7 +2474,7 @@ func addHandlers() {
 	}
 
 	commandHandlers["removereport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		dsn := fmt.Sprintf("%s:<%s>@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
 			log.Fatal(err)
@@ -2366,6 +2562,41 @@ func addHandlers() {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Successfully removed the report",
+			},
+		})
+	}
+
+	commandHandlers["sql"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Member.User.ID != "384422339393355786" {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Successfully exe- wait you aren't Klos...\n\n\n\n\nuh oh",
+				},
+			})
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		_, err = db.Query(i.ApplicationCommandData().Options[0].StringValue())
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Successfully executed query",
 			},
 		})
 	}

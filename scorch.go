@@ -19,6 +19,13 @@ var (
 )
 
 func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+	if r.Member.User.ID == donator && r.Emoji.Name != "verger" {
+		s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.APIName(), r.UserID)
+		user, _ := s.User(donator)
+		s.ChannelMessageSend("1196943729387372634", user.Mention()+" https://tenor.com/bN5md.gif")
+		return
+	}
+
 	msg, _ := s.ChannelMessage(r.ChannelID, r.MessageID)
 
 	if (msg.Author.ID == "1062801024731054080" || msg.Author.ID == "1196526025211904110" || msg.Author.ID == "1196935886198276227" || msg.Author.ID == "1197159189265530920") && r.Emoji.Name == "❌" {

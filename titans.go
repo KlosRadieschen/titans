@@ -32,7 +32,7 @@ var (
 
 var (
 	GuildID  = "1195135473006420048"
-	sleeping = []bool{false, false, false, false}
+	sleeping = false
 	modes    = make(map[string]bool)
 	message  = make(map[string][]string)
 	client   = openai.NewClient(openAIToken)
@@ -41,24 +41,20 @@ var (
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: db,
+				Content: "",
 			},
 		},
 	}
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "removetimezone",
-			Description: "Remove your timezone",
-		},
-		{
-			Name:        "comparetimezones",
-			Description: "Compare your timezone with that of another user",
+			Name:        "listrecentreports",
+			Description: "List a certain amount of recent reports",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "User to compare your timezone with",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "amount",
+					Description: "amount of reports to list",
 					Required:    true,
 				},
 			},
@@ -285,7 +281,7 @@ var (
 			awaitUsers = append(awaitUsers, i.Member.User.ID)
 		},
 		"sleep": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if sleeping[0] {
+			if sleeping {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -318,11 +314,11 @@ var (
 					duration, _ := time.ParseDuration(strconv.Itoa(randInt) + "ms")
 					time.Sleep(duration)
 				}
-				sleeping[0] = true
+				sleeping = true
 			}
 		},
 		"wakeup": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if !sleeping[0] {
+			if !sleeping {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -336,7 +332,7 @@ var (
 						Content: "https://tenor.com/wmaO.gif",
 					},
 				})
-				sleeping[0] = false
+				sleeping = false
 			}
 		},
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -1108,15 +1104,11 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot {
+	if m.Author.Bot || sleeping {
 		return
 	} else if m.ChannelID == "1210703529107390545" {
 		handlesoundEffect(s, m)
 		return
-	}
-
-	for _, p := range personalities {
-		go handlePersonalityMessage(s, m, p)
 	}
 
 	channel, _ := s.Channel(m.ChannelID)
@@ -1189,10 +1181,18 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		default:
 			if !modes[m.Author.ID] {
-				encryptedString, _ := Encrypt(m.Content, code)
+				encryptedString, err := Encrypt(m.Content, code)
+				if err != nil {
+					s.ChannelMessageSendReply(m.ChannelID, err.Error(), m.Reference())
+					return
+				}
 				s.ChannelMessageSendReply(m.ChannelID, encryptedString, m.Reference())
 			} else {
-				decryptedString, _ := Decrypt(m.Content, code)
+				decryptedString, err := Decrypt(m.Content, code)
+				if err != nil {
+					s.ChannelMessageSendReply(m.ChannelID, "What the fuck? This is not even an encrypted message... What the hell did you expect to happen????", m.Reference())
+					return
+				}
 				s.ChannelMessageSendReply(m.ChannelID, decryptedString, m.Reference())
 			}
 		}
@@ -1273,6 +1273,10 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else if m.Author.ID == donator {
 		s.ChannelMessageDelete(m.ChannelID, m.ID)
 		return
+	}
+
+	for _, p := range personalities {
+		go handlePersonalityMessage(s, m, p)
 	}
 
 	/*
