@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -25,9 +24,7 @@ var (
 	awaitUsersDec   []string
 	missionUsers    []string
 	missionChannels []string
-	donator         string
-	donatorRole     string
-	sacrificed      bool
+	donators        []Donator
 )
 
 var (
@@ -48,13 +45,13 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listrecentreports",
-			Description: "List a certain amount of recent reports",
+			Name:        "revive",
+			Description: "Revive an executed member",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "amount",
-					Description: "amount of reports to list",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user you want to revive",
 					Required:    true,
 				},
 			},
@@ -338,7 +335,7 @@ var (
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			hasPermission := false
 			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" || role == "1226899595666133054" {
 					hasPermission = true
 				}
 			}
@@ -350,14 +347,6 @@ var (
 						Content: "Sorry pilot, you do not possess the permission to execute a member",
 					},
 				})
-			} else if donator != "" {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Please revive the currently executed user first, to make space in the Gutterman's coffin",
-					},
-				})
-				return
 			} else {
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
@@ -389,7 +378,7 @@ var (
 					}
 				}
 
-				err := s.GuildMemberRoleRemove(GuildID, member.User.ID, roles[index])
+				err := s.GuildMemberRoleRemove(GuildID, userID, roles[index])
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -399,25 +388,29 @@ var (
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, member.User.ID, "1195136604373782658")
-				donator = userID
-				donatorRole = roles[index]
+				s.GuildMemberRoleAdd(GuildID, userID, "1195136604373782658")
+				donators = append(donators, Donator{
+					userID:     userID,
+					roleID:     roles[index],
+					sacrificed: false,
+				})
 
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Confirming the execution of " + member.Mention() + "\n***waking up the Gutterman***",
+						Content: "Confirming the execution of " + member.Mention(),
 					},
 				})
-				sacrificed = false
 			}
 		},
 		"revive": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if donator == "" {
+			d, ok := getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+
+			if !ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Can't revive because nobody is dead",
+						Content: "You trippin man, that user is not even dead",
 					},
 				})
 				return
@@ -425,21 +418,21 @@ var (
 
 			hasPermission := false
 			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1226899595666133054" {
 					hasPermission = true
 				}
 			}
 
-			if !hasPermission && !sacrificed {
+			if !hasPermission && !d.sacrificed {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Sorry pilot, you do not possess the permission to revivea member",
+						Content: "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)",
 					},
 				})
 				return
 			}
-			err := s.GuildMemberRoleRemove(GuildID, donator, "1195136604373782658")
+			err := s.GuildMemberRoleRemove(GuildID, d.userID, "1195136604373782658")
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -449,7 +442,7 @@ var (
 				})
 				return
 			}
-			s.GuildMemberRoleAdd(GuildID, donator, donatorRole)
+			s.GuildMemberRoleAdd(GuildID, d.userID, d.roleID)
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -457,71 +450,62 @@ var (
 					Content: "Executed user has been revived, shutting down Gutterman!",
 				},
 			})
-			donator = ""
-			donatorRole = ""
+			reviveDonator(d)
 		},
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if donator != "" {
+			userID := i.Member.User.ID
+			member, _ := s.GuildMember(GuildID, userID)
+			var roles []string
+			var index int
+			roles = append(roles, "1195135956471255140")
+			roles = append(roles, "1195858311627669524")
+			roles = append(roles, "1195858271349784639")
+			roles = append(roles, "1195136106811887718")
+			roles = append(roles, "1195858179590987866")
+			roles = append(roles, "1195137362259349504")
+			roles = append(roles, "1195136284478410926")
+			roles = append(roles, "1195137253408768040")
+			roles = append(roles, "1195758308519325716")
+			roles = append(roles, "1195758241221722232")
+			roles = append(roles, "1195758137563689070")
+			roles = append(roles, "1195757362439528549")
+			roles = append(roles, "1195136491148550246")
+			roles = append(roles, "1195708423229165578")
+			roles = append(roles, "1195137477497868458")
+			roles = append(roles, "1195136604373782658")
+			roles = append(roles, "1195711869378367580")
+
+			for i, guildRole := range roles {
+				for _, memberRole := range member.Roles {
+					if guildRole == memberRole {
+						index = i
+					}
+				}
+			}
+
+			err := s.GuildMemberRoleRemove(GuildID, userID, roles[index])
+			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Please revive the currently executed user first, to make space in the Gutterman's coffin",
+						Content: "Error: " + err.Error(),
 					},
 				})
 				return
-			} else {
-				userID := i.Member.User.ID
-				member, _ := s.GuildMember(GuildID, userID)
-				var roles []string
-				var index int
-				roles = append(roles, "1195135956471255140")
-				roles = append(roles, "1195858311627669524")
-				roles = append(roles, "1195858271349784639")
-				roles = append(roles, "1195136106811887718")
-				roles = append(roles, "1195858179590987866")
-				roles = append(roles, "1195137362259349504")
-				roles = append(roles, "1195136284478410926")
-				roles = append(roles, "1195137253408768040")
-				roles = append(roles, "1195758308519325716")
-				roles = append(roles, "1195758241221722232")
-				roles = append(roles, "1195758137563689070")
-				roles = append(roles, "1195757362439528549")
-				roles = append(roles, "1195136491148550246")
-				roles = append(roles, "1195708423229165578")
-				roles = append(roles, "1195137477497868458")
-				roles = append(roles, "1195136604373782658")
-				roles = append(roles, "1195711869378367580")
-
-				for i, guildRole := range roles {
-					for _, memberRole := range member.Roles {
-						if guildRole == memberRole {
-							index = i
-						}
-					}
-				}
-
-				err := s.GuildMemberRoleRemove(GuildID, member.User.ID, roles[index])
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Error: " + err.Error(),
-						},
-					})
-					return
-				}
-				s.GuildMemberRoleAdd(GuildID, member.User.ID, "1195136604373782658")
-				donator = userID
-				donatorRole = roles[index]
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Confirming the sacrifice of " + member.Mention() + "\n***waking up the Gutterman***",
-					},
-				})
-				sacrificed = true
 			}
+			s.GuildMemberRoleAdd(GuildID, userID, "1195136604373782658")
+			donators = append(donators, Donator{
+				userID:     userID,
+				roleID:     roles[index],
+				sacrificed: true,
+			})
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Confirming the sacrifice of " + member.Mention(),
+				},
+			})
 		},
 		"member-count": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			guild, _ := s.State.Guild(GuildID)
@@ -761,7 +745,8 @@ var (
 			})
 		},
 		"message": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.Member.User.ID == donator {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -780,7 +765,8 @@ var (
 			})
 		},
 		"poll": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.Member.User.ID == donator {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -802,7 +788,7 @@ var (
 			}
 
 			emojis := []string{"🔥", "🍷", "💀", "👻", "🎶", "💦", "🫠", "🤡", "🕊️", "💜"}
-			response := "**" + i.ApplicationCommandData().Options[0].StringValue() + "**\n"
+			response := "**" + i.ApplicationCommandData().Options[0].StringValue() + "** (by " + i.Member.User.Mention() + ")\n"
 			options := i.ApplicationCommandData().Options
 			endTime := time.Now().Add(duration)
 
@@ -846,7 +832,7 @@ var (
 				return
 			}
 
-			response = "Results of the poll:\n**" + i.ApplicationCommandData().Options[0].StringValue() + "**:\n"
+			response = "Results of the poll:\n**" + i.ApplicationCommandData().Options[0].StringValue() + "** (by" + i.Member.User.Mention() + "):\n"
 			for i := range i.ApplicationCommandData().Options {
 				if i != 0 && i != 1 {
 					response += emojis[i-2] + options[i].StringValue() + ": **" + strconv.FormatFloat(float64(votes[poll.Reactions[i-2].Emoji.Name])/float64(total)*100, 'f', 0, 64) + "% (" + strconv.Itoa(votes[poll.Reactions[i-2].Emoji.Name]) + " votes)**\n"
@@ -884,7 +870,8 @@ var (
 			})
 		},
 		"addpersonality": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.Member.User.ID == donator {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -946,7 +933,8 @@ var (
 			})
 		},
 		"addpersonalityas": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if i.Member.User.ID == donator {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -1052,6 +1040,11 @@ type Personality struct {
 	nick string
 	pfp  string
 }
+type Donator struct {
+	userID     string
+	roleID     string
+	sacrificed bool
+}
 
 func main() {
 	var err error
@@ -1104,7 +1097,7 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || sleeping {
+	if m.Author.Bot {
 		return
 	} else if m.ChannelID == "1210703529107390545" {
 		handlesoundEffect(s, m)
@@ -1122,6 +1115,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// handle Scorch specific messages
+	_, ok := getDonator(m.Author.ID)
 	if channel.Type == discordgo.ChannelTypeDM {
 		if slices.Contains(awaitUsersDec, m.Author.ID) {
 			if m.Content == code {
@@ -1205,7 +1199,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 				awaitUsers = awaitUsers[:len(awaitUsers)-1]
 			}
 		}
-		if m.Author.ID == donator {
+		if slices.Contains(awaitUsers, m.Author.ID) {
 			s.ChannelMessageDelete(m.ChannelID, m.ID)
 			s.ChannelMessageSend(m.ChannelID, "https://tenor.com/bN5md.gif")
 			return
@@ -1270,43 +1264,47 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		s.ChannelMessageDelete(m.ChannelID, msg.ID)
 		return
-	} else if m.Author.ID == donator {
+	} else if ok {
 		s.ChannelMessageDelete(m.ChannelID, m.ID)
 		return
 	}
 
-	for _, p := range personalities {
-		go handlePersonalityMessage(s, m, p)
+	if sleeping {
+		return
 	}
 
 	/*
-		if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
-			ref := m.Reference()
-			var prompt string
-			if donator == "" {
-				prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-			} else {
-				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-			}
-			resp, err := client.CreateChatCompletion(
-				context.Background(),
-				openai.ChatCompletionRequest{
-					Model: openai.GPT3Dot5Turbo,
-					Messages: []openai.ChatCompletionMessage{
-						{
-							Role:    openai.ChatMessageRoleUser,
-							Content: prompt,
+		for _, p := range personalities {
+			go handlePersonalityMessage(s, m, p)
+		}
+
+			if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
+				ref := m.Reference()
+				var prompt string
+				if donator == "" {
+					prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+				} else {
+					prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+				}
+				resp, err := client.CreateChatCompletion(
+					context.Background(),
+					openai.ChatCompletionRequest{
+						Model: openai.GPT3Dot5Turbo,
+						Messages: []openai.ChatCompletionMessage{
+							{
+								Role:    openai.ChatMessageRoleUser,
+								Content: prompt,
+							},
 						},
 					},
-				},
-			)
-			if err != nil {
-				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-				return
-			} else {
-				s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+				)
+				if err != nil {
+					s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+					return
+				} else {
+					s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+				}
 			}
-		}
 	*/
 
 	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
@@ -1471,6 +1469,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	*/
 }
 
+/*
 func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, p Personality) {
 	if strings.Contains(m.Content, p.nick) {
 		s.WebhookEdit("1224823508786348124", p.name, p.pfp, m.ChannelID)
@@ -1503,6 +1502,7 @@ func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, 
 		return
 	}
 }
+*/
 
 func killPersonality(s *discordgo.Session, i *discordgo.InteractionCreate, p Personality) {
 	s.WebhookEdit("1224823508786348124", p.name, p.pfp, i.ChannelID)
@@ -1520,4 +1520,32 @@ func killPersonality(s *discordgo.Session, i *discordgo.InteractionCreate, p Per
 			break
 		}
 	}
+}
+
+func getDonator(userID string) (Donator, bool) {
+	for i := 0; i < len(donators); i++ {
+		if donators[i].userID == userID {
+			return donators[i], true
+		}
+	}
+	return Donator{}, false
+}
+
+func reviveDonator(elem Donator) {
+	// Find the index of the element to remove
+	index := -1
+	for i, v := range donators {
+		if v == elem {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		// Element not found, return the original slice
+		return
+	}
+
+	// Remove the element at the found index
+	donators = append(donators[:index], donators[index+1:]...)
 }

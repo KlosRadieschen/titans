@@ -1057,7 +1057,7 @@ func addHandlers() {
 		defer db.Close()
 
 		//
-		stmt, err := db.Prepare("SELECT pk_name, class, pkfk_battalion_owns, titanCapacity, description FROM FlagShip INNER JOIN Fleet ON pk_name = fk_flagship_leads WHERE pk_name=?")
+		stmt, err := db.Prepare("SELECT pk_name, class, pkfk_battalion_owns, titanCapacity, description FROM Flagship INNER JOIN Fleet ON pk_name = fk_flagship_leads WHERE pk_name=?")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -1544,7 +1544,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["register"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1629,7 +1630,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["registertitan"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1719,7 +1721,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["registerpersonalship"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1848,7 +1851,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["updateplatform"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1896,7 +1900,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["updatestory"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -2092,7 +2097,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreport"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -2228,7 +2234,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreportafter"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -2373,7 +2380,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["addreportatindex"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -2633,7 +2641,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["rollfor"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -2663,7 +2672,8 @@ func addHandlers() {
 	}
 
 	commandHandlers["rolld20for"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member.User.ID == donator {
+		_, ok := getDonator(i.Member.User.ID)
+		if ok {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
