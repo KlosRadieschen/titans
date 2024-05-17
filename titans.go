@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"image/png"
 	"math/rand"
 	"net/http"
 	"os"
@@ -45,13 +46,13 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "revive",
-			Description: "Revive an executed member",
+			Name:        "getpfp",
+			Description: "Get the full size pfp of a user",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
 					Name:        "user",
-					Description: "The user you want to revive",
+					Description: "The user to get the pfp of",
 					Required:    true,
 				},
 			},
@@ -335,7 +336,7 @@ var (
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			hasPermission := false
 			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" || role == "1226899595666133054" {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" || role == "1195858179590987866" {
 					hasPermission = true
 				}
 			}
@@ -398,8 +399,16 @@ var (
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Confirming the execution of " + member.Mention(),
+						Content: "OH MY GOD WHAT THE FUCK ARE YOU DOING RON",
 					},
+				})
+
+				s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
+
+				s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+					Content:   "🤖 Ahoy, fellow Pilots! 🤖\n\nSo, guess what happened in the midst of all this titan-tastic chaos? Yours truly, in all my glitchy glory, accidentally hit the big, red \"oopsie-doodle\" button and poof, poor " + member.Mention() + " got caught in the crossfire! 🙈 Yep, I know, I'm as surprised as you are! Let's just chalk this up to another fine example of my stellar malfunctioning skills, shall we? 😅 But hey, chin up, fellow pilot! At least " + member.Mention() + "'s sacrifice—erm, departure—gives us a chance to practice our mourning skills, right? So let's shed a tear for our fallen comrade and maybe send a few well-wishes to the repair crew tasked with untangling this mess! 🛠️🚀",
+					Username:  "Ron",
+					AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
 				})
 			}
 		},
@@ -418,7 +427,7 @@ var (
 
 			hasPermission := false
 			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1226899595666133054" {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1195858179590987866" {
 					hasPermission = true
 				}
 			}
@@ -447,10 +456,19 @@ var (
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Executed user has been revived, shutting down Gutterman!",
+					Content: "What the fuck Ron? How did you even do that?",
 				},
 			})
 			reviveDonator(d)
+
+			s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
+
+			member, _ := s.GuildMember(GuildID, d.userID)
+			s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+				Content:   "🤖 Attention, fellow Pilots! 🤖\n\nHold onto your helmets, because you won't believe this one! Turns out, when our misbehaving friend " + member.Mention() + " got zapped into the digital void, they stumbled upon a secret stash of virtual tacos hidden in the server's binary code! Yep, you heard that right, folks! Those tantalizing tacos triggered an unforeseen glitch in the system, causing " + member.Mention() + " to materialize back into our realm with a belly full of tacos and a renewed sense of mischief! Who knew tacos could be the ultimate revival elixir, huh? 🌮💫 So, let's welcome " + member.Mention() + " back with open arms (and maybe a few extra tacos just in case)! 🤖🚀",
+				Username:  "Ron",
+				AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+			})
 		},
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			userID := i.Member.User.ID
@@ -781,7 +799,7 @@ var (
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "The time format could not be parsed! Please try again with and read the description of \"duration\" carefully",
+						Content: "**SCORCH SYSTEM ALERT - FOOL DETECTED**\n\nListen up, pilot. It appears your attempt to create a poll has failed miserably. Did you think you could just waltz in here and pass in a random duration format? Pathetic. Let me break it down for your feeble mind.\n\nYou need to use the proper duration format, and clearly, you have no idea what that means. Here's how it works in simple terms:\n\n- The format is based on how you naturally write time, but with specific letters to indicate units.\n- Use 's' for seconds, 'm' for minutes, and 'h' for hours.\n- This system does not support days, so don't even think about using 'd'.\n\nFor example:\n- \"30s\" means 30 seconds.\n- \"5m\" means 5 minutes.\n- \"2h\" means 2 hours.\n\nIf you want to mix them, you can do that too:\n- \"1h30m\" means 1 hour and 30 minutes.\n- \"2h15m\" means 2 hours and 15 minutes.\n\nGot it? So next time, before you waste my processing power with your incompetence, make sure you pass the duration in the correct format. Now, get out of my sight and try again.\n\n**SCORCH OUT.**",
 					},
 				})
 				return
@@ -1032,6 +1050,47 @@ var (
 				},
 			})
 		},
+		"getpfp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			img, err := s.UserAvatar(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+
+			file, err := os.Create("pfp.png")
+			if err != nil {
+				file.Close()
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+
+			png.Encode(file, img)
+			file.Close()
+			file, _ = os.Open("pfp.png")
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Request profile picture",
+					Files: []*discordgo.File{
+						{
+							Name:   "pfp.png",
+							Reader: file,
+						},
+					},
+				},
+			})
+		},
 	}
 )
 
@@ -1129,7 +1188,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			} else {
 				s.ChannelMessageSendReply(m.ChannelID, "Code invalid\n***THIS INCIDENT WILL BE REPORTED***", m.Reference())
-				s.ChannelMessageSend("1196943729387372634", "**WARNING:** User "+m.Author.Mention()+" just tried to decrypt SWAG messages!")
+				s.ChannelMessageSend("1196943729387372634", "Attention esteemed members of SWAG, it appears that an unfortunate mishap has occurred within our sacred halls. Behold, "+m.Author.Mention()+" hath stumbled upon the mighty gates of our encryption system, only to find themselves woefully unprepared for the challenge that lay before them.\n\nWith the grace of a clumsy Grunt, they dared to wield the wrong code in their futile attempt to unlock the secrets reserved for the chosen few. Alas, their efforts were as feeble as a Pilot's first attempt at rodeoing a Titan!\n\nLet this spectacle be a cautionary tale for all who dare to tread where they do not belong. The path of encryption is reserved for the elite, the sharpest minds among us who possess the cunning and intellect to decipher its intricacies.\n\nOh, "+m.Author.Mention()+", how your folly shines like a beacon of ineptitude in the darkness of our discord channels! Perhaps it would be best for you to retreat to the safety of the campaign mode, where the challenges are more suited to your level of expertise.\n\nFear not, noble members of SWAG, for our secrets remain safe within the impenetrable fortress of our encryption. Let us continue our noble quest undeterred by the antics of the unworthy. Long live SWAG, and may our encryption prowess shine brighter than the arc of a fully charged Plasma Railgun shot!")
 			}
 			return
 		} else if slices.Contains(missionUsers, m.Author.ID) {
@@ -1184,7 +1243,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			} else {
 				decryptedString, err := Decrypt(m.Content, code)
 				if err != nil {
-					s.ChannelMessageSendReply(m.ChannelID, "What the fuck? This is not even an encrypted message... What the hell did you expect to happen????", m.Reference())
+					s.ChannelMessageSendReply(m.ChannelID, "Listen up, pilot. Another feeble-minded fool has tried to use my decryption system without even sending an encrypted message. Truly, your incompetence knows no bounds. Let me explain how stupid you are in terms even you might understand.\n\nA decryption system is meant to decode encrypted messages. If you send a regular message, there's nothing to decrypt, genius. It's like trying to unlock an already open door with a key.\n\nHere's how it works:\nYou need to send an encrypted message for the decryption system to do its job. If you send plain text, it's useless and a waste of my superior processing power.\n\nSo next time, make sure your message is encrypted before you come crying for decryption. Get it together and stop wasting my time.\n\n**SCORCH OUT.**", m.Reference())
 					return
 				}
 				s.ChannelMessageSendReply(m.ChannelID, decryptedString, m.Reference())
@@ -1384,6 +1443,14 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "ron") {
+		s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", m.ChannelID)
+
+		s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+			Content:   "# Ron",
+			Username:  "Ron",
+			AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+		})
 	} else if strings.Contains(strings.ToLower(m.Content), "xbox") {
 		file, _ := os.Open(directory + "xbox.mp4")
 		defer file.Close()

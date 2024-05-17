@@ -444,12 +444,38 @@ func addHandlers() {
 		if resultString == "" {
 			resultString = "No results"
 		}
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: resultString,
-			},
-		})
+		if len(resultString) >= 2000 {
+			chunks := make([]string, 0, len(resultString)/2000+1)
+			currentChunk := ""
+			for _, c := range resultString {
+				if len(currentChunk) >= 1999 {
+					chunks = append(chunks, currentChunk)
+					currentChunk = ""
+				}
+				currentChunk += string(c)
+			}
+			if currentChunk != "" {
+				chunks = append(chunks, currentChunk)
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: chunks[0],
+				},
+			})
+			for _, chunk := range chunks[1:] {
+				s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+					Content: chunk,
+				})
+			}
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: resultString,
+				},
+			})
+		}
 	}
 
 	commandHandlers["listrecentreports"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
