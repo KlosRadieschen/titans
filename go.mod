@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/sashabaranov/go-openai v1.17.11
+	github.com/sashabaranov/go-openai v1.24.0
 	github.com/tkuchiki/go-timezone v0.2.3
 	google.golang.org/api v0.172.0
 )

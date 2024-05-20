@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"image/png"
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,6 +28,7 @@ var (
 	missionUsers    []string
 	missionChannels []string
 	donators        []Donator
+	impersonators   []Impersonator
 )
 
 var (
@@ -39,20 +42,30 @@ var (
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "",
+				Content: db,
 			},
 		},
 	}
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "getpfp",
-			Description: "Get the full size pfp of a user",
+			Name:        "un-become",
+			Description: "un-become a personality",
+		},
+		{
+			Name:        "becomewithpfp",
+			Description: "become a personality and choose the pfp",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user to get the pfp of",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "name",
+					Description: "name of the character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "imageurl",
+					Description: "url of the image",
 					Required:    true,
 				},
 			},
@@ -396,25 +409,41 @@ var (
 					sacrificed: false,
 				})
 
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "OH MY GOD WHAT THE FUCK ARE YOU DOING RON",
-					},
-				})
+				// 25% chance of being ron
+				if rand.Intn(4) == 3 {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "OH MY GOD WHAT THE FUCK ARE YOU DOING RON",
+						},
+					})
 
-				s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
+					s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
 
-				s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
-					Content:   "🤖 Ahoy, fellow Pilots! 🤖\n\nSo, guess what happened in the midst of all this titan-tastic chaos? Yours truly, in all my glitchy glory, accidentally hit the big, red \"oopsie-doodle\" button and poof, poor " + member.Mention() + " got caught in the crossfire! 🙈 Yep, I know, I'm as surprised as you are! Let's just chalk this up to another fine example of my stellar malfunctioning skills, shall we? 😅 But hey, chin up, fellow pilot! At least " + member.Mention() + "'s sacrifice—erm, departure—gives us a chance to practice our mourning skills, right? So let's shed a tear for our fallen comrade and maybe send a few well-wishes to the repair crew tasked with untangling this mess! 🛠️🚀",
-					Username:  "Ron",
-					AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
-				})
+					s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+						Content:   "🤖 Ahoy, fellow Pilots! 🤖\n\nSo, guess what happened in the midst of all this titan-tastic chaos? Yours truly, in all my glitchy glory, accidentally hit the big, red \"oopsie-doodle\" button and poof, poor " + member.Mention() + " got caught in the crossfire! 🙈 Yep, I know, I'm as surprised as you are! Let's just chalk this up to another fine example of my stellar malfunctioning skills, shall we? 😅 But hey, chin up, fellow pilot! At least " + member.Mention() + "'s sacrifice—erm, departure—gives us a chance to practice our mourning skills, right? So let's shed a tear for our fallen comrade and maybe send a few well-wishes to the repair crew tasked with untangling this mess! 🛠️🚀",
+						Username:  "Ron",
+						AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+					})
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Confirming execution of " + member.Mention(),
+						},
+					})
+				}
 			}
 		},
 		"revive": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			d, ok := getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			hasPermission := false
+			for _, role := range i.Member.Roles {
+				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1195858179590987866" {
+					hasPermission = true
+				}
+			}
 
+			d, ok := getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
 			if !ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -425,50 +454,72 @@ var (
 				return
 			}
 
-			hasPermission := false
-			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1195858179590987866" {
-					hasPermission = true
-				}
-			}
-
-			if !hasPermission && !d.sacrificed {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)",
-					},
-				})
-				return
-			}
-			err := s.GuildMemberRoleRemove(GuildID, d.userID, "1195136604373782658")
-			if err != nil {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Error: " + err.Error(),
-					},
-				})
-				return
-			}
-			s.GuildMemberRoleAdd(GuildID, d.userID, d.roleID)
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "What the fuck Ron? How did you even do that?",
-				},
-			})
-			reviveDonator(d)
-
-			s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
-
 			member, _ := s.GuildMember(GuildID, d.userID)
-			s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
-				Content:   "🤖 Attention, fellow Pilots! 🤖\n\nHold onto your helmets, because you won't believe this one! Turns out, when our misbehaving friend " + member.Mention() + " got zapped into the digital void, they stumbled upon a secret stash of virtual tacos hidden in the server's binary code! Yep, you heard that right, folks! Those tantalizing tacos triggered an unforeseen glitch in the system, causing " + member.Mention() + " to materialize back into our realm with a belly full of tacos and a renewed sense of mischief! Who knew tacos could be the ultimate revival elixir, huh? 🌮💫 So, let's welcome " + member.Mention() + " back with open arms (and maybe a few extra tacos just in case)! 🤖🚀",
-				Username:  "Ron",
-				AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
-			})
+			counter := 1
+			for ok {
+				if !hasPermission && !d.sacrificed {
+					if counter == 1 {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)",
+							},
+						})
+					} else {
+						s.ChannelMessageSend(i.ChannelID, "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)")
+					}
+					return
+				}
+
+				err := s.GuildMemberRoleRemove(GuildID, d.userID, "1195136604373782658")
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Error: " + err.Error(),
+						},
+					})
+					return
+				}
+				s.GuildMemberRoleAdd(GuildID, d.userID, d.roleID)
+				reviveDonator(d)
+
+				if rand.Intn(4) == 3 {
+					if counter == 1 {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: "What the fuck Ron? How did you even do that?",
+							},
+						})
+					} else {
+						s.ChannelMessageSend(i.ChannelID, "What the fuck Ron? How did you even do that?")
+					}
+
+					s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", i.ChannelID)
+
+					s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+						Content:   "🤖 Attention, fellow Pilots! 🤖\n\nHold onto your helmets, because you won't believe this one! Turns out, when our misbehaving friend " + member.Mention() + " got zapped into the digital void, they stumbled upon a secret stash of virtual tacos hidden in the server's binary code! Yep, you heard that right, folks! Those tantalizing tacos triggered an unforeseen glitch in the system, causing " + member.Mention() + " to materialize back into our realm with a belly full of tacos and a renewed sense of mischief! Who knew tacos could be the ultimate revival elixir, huh? 🌮💫 So, let's welcome " + member.Mention() + " back with open arms (and maybe a few extra tacos just in case)! 🤖🚀",
+						Username:  "Ron",
+						AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+					})
+				} else {
+					if counter == 1 {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: member.Mention() + " has been revived!",
+							},
+						})
+					} else {
+						s.ChannelMessageSend(i.ChannelID, member.Mention()+" has been revived!")
+					}
+				}
+
+				d, ok = getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				counter++
+			}
+			s.ChannelMessageSend(i.ChannelID, member.Mention()+" execution count: "+strconv.Itoa(counter-1))
 		},
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			userID := i.Member.User.ID
@@ -899,14 +950,6 @@ var (
 				return
 			}
 
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Feature is unavailable right now",
-				},
-			})
-			return
-
 			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
 
 			svc, err := customsearch.New(client)
@@ -961,14 +1004,6 @@ var (
 				})
 				return
 			}
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Feature is unavailable right now",
-				},
-			})
-			return
 
 			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
 
@@ -1025,6 +1060,16 @@ var (
 			}
 		},
 		"kill": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1091,6 +1136,134 @@ var (
 				},
 			})
 		},
+		"become": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			_, ok = getImpersonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You can't become more than one character at a time!",
+					},
+				})
+				return
+			}
+
+			client := &http.Client{Transport: &transport.APIKey{Key: searchAPI}}
+
+			svc, err := customsearch.New(client)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+
+			var firstImageURL string
+			resp, err := svc.Cse.List().Cx("039dceadb44b449d6").Q(i.ApplicationCommandData().Options[0].StringValue()).SearchType("image").Do()
+			if err != nil {
+				firstImageURL = "https://media.discordapp.net/attachments/1196943729387372634/1224835907660546238/Screenshot_20240321_224719_Gallery.jpg?ex=661ef054&is=660c7b54&hm=fb728718081a1b5671289dbb62c5afa549fa294f58fdf60ee0961139d517c31d&=&format=webp"
+			} else {
+				if len(resp.Items) > 0 {
+					firstImageURL = resp.Items[0].Image.ThumbnailLink
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "No images found",
+						},
+					})
+					return
+				}
+			}
+
+			impersonators = append(impersonators, Impersonator{
+				userID:    i.Member.User.ID,
+				channelID: i.ChannelID,
+				nick:      i.ApplicationCommandData().Options[0].StringValue(),
+				pfp:       firstImageURL,
+				dmID:      "",
+			})
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: i.Member.Mention() + " has become " + i.ApplicationCommandData().Options[0].StringValue() + " (dm Scorch to control)",
+				},
+			})
+		},
+		"becomewithpfp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			_, ok = getImpersonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You can't become more than one character at a time!",
+					},
+				})
+				return
+			}
+
+			impersonators = append(impersonators, Impersonator{
+				userID:    i.Member.User.ID,
+				channelID: i.ChannelID,
+				nick:      i.ApplicationCommandData().Options[0].StringValue(),
+				pfp:       i.ApplicationCommandData().Options[1].StringValue(),
+				dmID:      "",
+			})
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: i.Member.Mention() + " has become " + i.ApplicationCommandData().Options[0].StringValue() + " (dm Scorch to control)",
+				},
+			})
+		},
+		"un-become": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			_, ok := getImpersonator(i.Member.User.ID)
+			if !ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You aren't a character right now",
+					},
+				})
+				return
+			}
+
+			removeImpersonator(Impersonator{
+				userID: i.Member.User.ID,
+			})
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/pG8rQHiteu8.gif",
+				},
+			})
+		},
 	}
 )
 
@@ -1103,6 +1276,14 @@ type Donator struct {
 	userID     string
 	roleID     string
 	sacrificed bool
+}
+
+type Impersonator struct {
+	userID    string
+	channelID string
+	nick      string
+	pfp       string
+	dmID      string
 }
 
 func main() {
@@ -1156,6 +1337,24 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
+	for _, impersonator := range impersonators {
+		if m.ChannelID == impersonator.channelID && impersonator.dmID != "" {
+			s.ChannelMessageSend(impersonator.dmID, m.Author.Mention()+": "+m.Content)
+		}
+	}
+
+	if rand.Intn(1000) == 3 {
+		s.ChannelMessageSend(m.ChannelID, "RON! NO! DON'T DO IT!")
+
+		s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", m.ChannelID)
+
+		s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+			Content:   "@everyone",
+			Username:  "Ron",
+			AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+		})
+	}
+
 	if m.Author.Bot {
 		return
 	} else if m.ChannelID == "1210703529107390545" {
@@ -1211,6 +1410,41 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 					s.ChannelMessageSend(id, m.Author.Mention()+": "+m.Content)
 				}
 			}
+			return
+		}
+		_, ok := getDonator(m.Author.ID)
+		if ok {
+			s.ChannelMessageSend(channel.ID, "https://tenor.com/bN5md.gif")
+			return
+		}
+
+		i, ok := getImpersonator(m.Author.ID)
+		if ok {
+			re := regexp.MustCompile(`:.*:`)
+			emojis := re.FindAllString(m.Content, -1)
+			guildEmojis, _ := s.GuildEmojis(GuildID)
+			resultString := m.Content
+
+			for _, emoji := range emojis {
+				for _, e := range guildEmojis {
+					if ":"+e.Name+":" == emoji {
+						resultString = strings.Replace(resultString, emoji, e.MessageFormat(), -1)
+					}
+				}
+			}
+
+			s.WebhookEdit("1224823508786348124", i.nick, i.pfp, i.channelID)
+
+			s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
+				Content:   resultString,
+				Username:  i.nick,
+				AvatarURL: i.pfp,
+			})
+
+			if i.dmID == "" {
+				impersonators[slices.Index(impersonators, i)].dmID = m.ChannelID
+			}
+
 			return
 		}
 
@@ -1332,39 +1566,32 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	/*
-		for _, p := range personalities {
-			go handlePersonalityMessage(s, m, p)
-		}
+	for _, p := range personalities {
+		go handlePersonalityMessage(s, m, p)
+	}
 
-			if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
-				ref := m.Reference()
-				var prompt string
-				if donator == "" {
-					prompt = "You are the AI of the Titan Scorch from Titanfall 2, but you suffer from severe dementia. You are on a discord server called \"AHA\" and sometimes shout \"**GLORY TO THE AHA**\" or \"**BURN THE PHC**\". You are extremely eager to get a promotion. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-				} else {
-					prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-				}
-				resp, err := client.CreateChatCompletion(
-					context.Background(),
-					openai.ChatCompletionRequest{
-						Model: openai.GPT3Dot5Turbo,
-						Messages: []openai.ChatCompletionMessage{
-							{
-								Role:    openai.ChatMessageRoleUser,
-								Content: prompt,
-							},
-						},
+	if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
+		ref := m.Reference()
+		prompt := "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
+		resp, err := client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model: openai.GPT3Dot5Turbo,
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    openai.ChatMessageRoleUser,
+						Content: prompt,
 					},
-				)
-				if err != nil {
-					s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-					return
-				} else {
-					s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
-				}
-			}
-	*/
+				},
+			},
+		)
+		if err != nil {
+			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+			return
+		} else {
+			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+		}
+	}
 
 	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
 		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
@@ -1465,78 +1692,47 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
-	}
-	/*
-		else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") || strings.Contains(strings.ToLower(m.Content), "bot") || strings.Contains(strings.ToLower(m.Content), "aha") || strings.Contains(strings.ToLower(m.Content), "a.h.a.") {
-			msg := m.Author.ID + ": " + m.Content
-			ref := m.Reference()
-			req.Messages = append(req.Messages, openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleUser,
-				Content: msg,
-			})
-			resp, err := client.CreateChatCompletion(context.Background(), req)
-			if err != nil {
-				s.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
-				return
-			}
-			if err != nil {
-				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-				return
-			} else {
-				resultString := resp.Choices[0].Message.Content
-				if len(resultString) >= 2000 {
-					chunks := make([]string, 0, len(resultString)/2000+1)
-					currentChunk := ""
-					for _, c := range resultString {
-						if len(currentChunk) >= 1999 {
-							chunks = append(chunks, currentChunk)
-							currentChunk = ""
-						}
-						currentChunk += string(c)
-					}
-					if currentChunk != "" {
+	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") {
+		msg := m.Author.ID + ": " + m.Content
+		ref := m.Reference()
+		req.Messages = append(req.Messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: msg,
+		})
+		resp, err := client.CreateChatCompletion(context.Background(), req)
+		if err != nil {
+			s.ChannelMessageSendReply(m.ChannelID, "ERROR: "+err.Error(), ref)
+			return
+		}
+		if err != nil {
+			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
+			return
+		} else {
+			resultString := resp.Choices[0].Message.Content
+			if len(resultString) >= 2000 {
+				chunks := make([]string, 0, len(resultString)/2000+1)
+				currentChunk := ""
+				for _, c := range resultString {
+					if len(currentChunk) >= 1999 {
 						chunks = append(chunks, currentChunk)
+						currentChunk = ""
 					}
-					for _, chunk := range chunks[0:] {
-						s.ChannelMessageSendReply(m.ChannelID, chunk, ref)
-					}
-				} else {
-					s.ChannelMessageSendReply(m.ChannelID, resultString, ref)
+					currentChunk += string(c)
 				}
-			}
-			req.Messages = append(req.Messages, resp.Choices[0].Message)
-		} else if strings.Contains(strings.ToLower(m.Content), "gutterman") && donator != "" {
-			var prompt string
-			if m.Type == 19 {
-				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following messages and your next response is the reply to the last message.\n\nMessage by user 1: " + m.ReferencedMessage.Content + "\n\nMessage by user 2:" + m.Content + "\n\n Your response: "
+				if currentChunk != "" {
+					chunks = append(chunks, currentChunk)
+				}
+				for _, chunk := range chunks[0:] {
+					s.ChannelMessageSendReply(m.ChannelID, chunk, ref)
+				}
 			} else {
-				prompt = "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have received the following message and your response is the reply to that message.\n\n Message:" + m.Content + "\n\nReply: "
-			}
-			ref := m.Reference()
-			client := openai.NewClient(openAIToken)
-			resp, err := client.CreateChatCompletion(
-				context.Background(),
-				openai.ChatCompletionRequest{
-					Model: openai.GPT3Dot5Turbo,
-					Messages: []openai.ChatCompletionMessage{
-						{
-							Role:    openai.ChatMessageRoleUser,
-							Content: prompt,
-						},
-					},
-				},
-			)
-			if err != nil {
-				s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
-				return
-			} else {
-				s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
+				s.ChannelMessageSendReply(m.ChannelID, resultString, ref)
 			}
 		}
-	*/
+		req.Messages = append(req.Messages, resp.Choices[0].Message)
+	}
 }
 
-/*
 func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, p Personality) {
 	if strings.Contains(m.Content, p.nick) {
 		s.WebhookEdit("1224823508786348124", p.name, p.pfp, m.ChannelID)
@@ -1569,7 +1765,6 @@ func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, 
 		return
 	}
 }
-*/
 
 func killPersonality(s *discordgo.Session, i *discordgo.InteractionCreate, p Personality) {
 	s.WebhookEdit("1224823508786348124", p.name, p.pfp, i.ChannelID)
@@ -1596,6 +1791,34 @@ func getDonator(userID string) (Donator, bool) {
 		}
 	}
 	return Donator{}, false
+}
+
+func getImpersonator(userID string) (Impersonator, bool) {
+	for i := 0; i < len(impersonators); i++ {
+		if impersonators[i].userID == userID {
+			return impersonators[i], true
+		}
+	}
+	return Impersonator{}, false
+}
+
+func removeImpersonator(elem Impersonator) {
+	// Find the index of the element to remove
+	index := -1
+	for i, v := range impersonators {
+		if v.userID == elem.userID {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		// Element not found, return the original slice
+		return
+	}
+
+	// Remove the element at the found index
+	impersonators = append(impersonators[:index], impersonators[index+1:]...)
 }
 
 func reviveDonator(elem Donator) {
