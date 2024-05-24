@@ -3,6 +3,7 @@ module edumoodle
 go 1.21.1
 
 require (
+	github.com/ayush6624/go-chatgpt v0.3.0
 	github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/go-sql-driver/mysql v1.8.1

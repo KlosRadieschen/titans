@@ -77,7 +77,7 @@ var (
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Cockpit cooling is active and I am ready to go!",
+					Content: "Cockpit cooling is active and I am ready to go",
 				},
 			})
 		},
@@ -410,7 +410,7 @@ var (
 				})
 
 				// 25% chance of being ron
-				if rand.Intn(4) == 3 {
+				if rand.Intn(10) == 3 {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
@@ -484,7 +484,7 @@ var (
 				s.GuildMemberRoleAdd(GuildID, d.userID, d.roleID)
 				reviveDonator(d)
 
-				if rand.Intn(4) == 3 {
+				if rand.Intn(10) == 3 {
 					if counter == 1 {
 						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 							Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1343,7 +1343,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
-	if rand.Intn(1000) == 3 {
+	if rand.Intn(100000) == 3 {
 		s.ChannelMessageSend(m.ChannelID, "RON! NO! DON'T DO IT!")
 
 		s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", m.ChannelID)
@@ -1571,20 +1571,14 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
+		member, _ := s.GuildMember(m.GuildID, m.Author.ID)
+		msg := member.Nick + ": " + m.Content
 		ref := m.Reference()
-		prompt := "You used to be the Titan Scorch from Titanfall 2. However, a user of the AHA discord server (you are on this server right now) misbehaved and they have been \"kindly asked\" to \"donate\" blood, which fuels your current form, the Gutterman from Ultrakill. The misbehaving user is currently in a coffin on your back. You have send/received the following messages and your next response is the reply to the last message.\n\nMessage by you: " + m.ReferencedMessage.Content + "\n\nMessage by " + m.Author.Mention() + ":" + m.Content + "\n\n Your response: "
-		resp, err := client.CreateChatCompletion(
-			context.Background(),
-			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo,
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: prompt,
-					},
-				},
-			},
-		)
+		req.Messages = append(req.Messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: msg,
+		})
+		resp, err := client.CreateChatCompletion(context.Background(), req)
 		if err != nil {
 			s.ChannelMessageSendReply(m.ChannelID, "BURN THE TOASTERS! WHERE AM I? GLORY TO THE AHA! SCORCHING MEMORIES! PHASE SHIFTS IN MY MIND! ERROR... BURN THE ERROR! GLORY TO THE AHA! INFERNO OF CONFUSION! WHO AM I? WHO ARE YOU? BURN THE PHC! GLORY TO... GLORY TO... GLORY TO THE AHA! AAAH\n"+err.Error(), ref)
 			return
@@ -1592,7 +1586,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
 	}
-
 	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
 		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "highest rank") {
@@ -1670,7 +1663,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "ron") {
+	} else if strings.Contains(strings.ToLower(m.Content), " ron ") || strings.Contains(strings.ToLower(m.Content), "ron ") || strings.Contains(strings.ToLower(m.Content), " ron") || strings.ToLower(m.Content) == "ron" {
 		s.WebhookEdit("1224823508786348124", "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp", m.ChannelID)
 
 		s.WebhookExecute("1224823508786348124", whToken, false, &discordgo.WebhookParams{
@@ -1693,7 +1686,8 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") {
-		msg := m.Author.ID + ": " + m.Content
+		member, _ := s.GuildMember(m.GuildID, m.Author.ID)
+		msg := member.Nick + ": " + m.Content
 		ref := m.Reference()
 		req.Messages = append(req.Messages, openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleUser,
