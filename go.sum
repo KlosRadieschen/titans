@@ -6,8 +6,6 @@ cloud.google.com/go/compute/metadata v0.2.3/go.mod h1:VAV5nSsACxMJvgaAuX6Pk2Aawl
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/ayush6624/go-chatgpt v0.3.0 h1:tQUfwSvSL9KA2XmBqj3L8aVdVPRb0Hcs3XtMmZKqsc8=
-github.com/ayush6624/go-chatgpt v0.3.0/go.mod h1:bn550cv7EHT7sHJG5yR60IGqjKlZ0S0Ll+IZp3z7nOc=
 github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e h1:IdfGDWLNL/ZAHda33oiKnkoaWWsQ6vyO+MDslrcJ43M=
 github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e/go.mod h1:DT3heoMAQGrOExZ3Rb3TBOQ4Bm+wD4H48KFnt1YfLoQ=
 github.com/bwmarrin/discordgo v0.27.1 h1:ib9AIc/dom1E/fSIulrBwnez0CToJE113ZGt4HoliGY=
