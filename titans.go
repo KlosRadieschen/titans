@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"image/png"
+	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -29,6 +30,7 @@ var (
 	missionChannels []string
 	donators        []Donator
 	impersonators   []Impersonator
+	welloMessage    string
 )
 
 var (
@@ -58,8 +60,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "listcharacters",
-			Description: "List all characters and the responsible users",
+			Name:        "exposewello",
+			Description: "Exposes Wello",
 		},
 		{
 			Name:        "changechannel",
@@ -1310,6 +1312,90 @@ var (
 				},
 			})
 		},
+		"exposewello": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if i.Member.User.ID == "942159289836011591" {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Shut up Wello",
+					},
+				})
+			} else {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: welloMessage,
+					},
+				})
+			}
+
+		},
+		"sendwallpaper": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			files := i.ApplicationCommandData().Resolved.Attachments
+
+			for _, v := range files {
+				if !strings.HasPrefix(v.ContentType, "image/") {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Thats not an image you goofy goober",
+						},
+					})
+					return
+				}
+
+				resp, err := http.Get(v.URL)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: err.Error(),
+						},
+					})
+				}
+				defer resp.Body.Close()
+
+				// Check if the request was successful
+				if resp.StatusCode != http.StatusOK {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: err.Error(),
+						},
+					})
+				}
+
+				// Create the file
+				out, err := os.Create("/home/Nicolas/go-workspace/src/titans/wallpapers/" + v.Filename)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: err.Error(),
+						},
+					})
+				}
+				defer out.Close()
+
+				// Copy the response body to the file
+				_, err = io.Copy(out, resp.Body)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: err.Error(),
+						},
+					})
+				}
+
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: v.URL,
+					},
+				})
+			}
+		},
 	}
 )
 
@@ -1379,12 +1465,18 @@ func main() {
 
 	fmt.Println("Commands added!")
 
+	session.ChannelMessageEdit("1249486992077754389", "1249785657589629081", "React <:verger:1225937868023795792> if you want to be pinged for website updates!")
+
 	<-make(chan struct{})
 }
 
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == "942159289836011591" {
+		welloMessage = m.Content
+	}
+
 	for _, impersonator := range impersonators {
 		if m.ChannelID == impersonator.channelID && impersonator.dmID != "" {
 			s.ChannelMessageSend(impersonator.dmID, m.Author.Mention()+": "+m.Content)

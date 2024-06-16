@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -19,6 +20,17 @@ var (
 )
 
 func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+	if r.MessageID == "1249785657589629081" {
+		member, _ := s.GuildMember("1195135473006420048", r.UserID)
+		roles := member.Roles
+		if slices.Contains(roles, "1249487137494012015") {
+			s.ChannelMessageSend("1196943729387372634", member.User.Mention()+" you already have the role")
+		} else {
+			s.GuildMemberRoleAdd("1195135473006420048", r.UserID, "1249487137494012015")
+			s.ChannelMessageSend("1196943729387372634", member.User.Mention()+", thanks for subscribing to website updates")
+		}
+	}
+
 	_, ok := getDonator(r.Member.User.ID)
 	if ok && r.Emoji.Name != "verger" {
 		err := s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.APIName(), r.UserID)
@@ -48,7 +60,7 @@ func guildMemberAdd(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 }
 
 func guildMemberRemove(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
-	s.ChannelMessageSend("1195135473643958316", m.Mention()+" left the server")
+	s.ChannelMessageSend("1195135473643958316", m.User.Username+" left the server")
 }
 
 func handlesoundEffect(s *discordgo.Session, m *discordgo.MessageCreate) {
