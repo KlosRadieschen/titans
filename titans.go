@@ -172,12 +172,22 @@ var (
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "Error: " + err.Error(),
+							Content: err.Error() + "\n\n" + currentRankID,
 						},
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, member.User.ID, newRankID)
+
+				err = s.GuildMemberRoleAdd(GuildID, member.User.ID, newRankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: err.Error() + "\n\n" + newRankID,
+						},
+					})
+					return
+				}
 
 				currentName := member.Nick
 				if len(strings.Split(currentName, ".")) == 1 {
@@ -189,7 +199,11 @@ var (
 					})
 					return
 				}
-				s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
+				if len(newRankAbbreviation+"."+strings.Split(currentName, ".")[1]) > 32 {
+					s.GuildMemberNickname(GuildID, member.User.ID, (newRankAbbreviation + "." + strings.Split(currentName, ".")[1])[:31])
+				} else {
+					s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
+				}
 
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -291,10 +305,18 @@ var (
 				s.GuildMemberRoleAdd(GuildID, member.User.ID, newRankID)
 
 				currentName := member.Nick
-				if len(strings.Split(currentName, ".")) == 1 {
-					s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+". "+currentName)
+				if len(newRankAbbreviation+"."+strings.Split(currentName, ".")[1]) > 32 {
+					if len(strings.Split(currentName, ".")) == 1 {
+						s.GuildMemberNickname(GuildID, member.User.ID, (newRankAbbreviation + ". " + currentName)[:31])
+					} else {
+						s.GuildMemberNickname(GuildID, member.User.ID, (newRankAbbreviation + "." + strings.Split(currentName, ".")[1])[:31])
+					}
 				} else {
-					s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
+					if len(strings.Split(currentName, ".")) == 1 {
+						s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+". "+currentName)
+					} else {
+						s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
+					}
 				}
 
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
