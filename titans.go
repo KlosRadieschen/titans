@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"fmt"
 	"image/png"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -87,12 +89,27 @@ var (
 			})
 		},
 		"promote": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			hasPermission := false
-			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195858179590987866" {
-					hasPermission = true
-				}
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
 			}
+			defer db.Close()
+
+			var rankCategory string
+			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.Member.User.ID)
+			err = rows.Scan(&rankCategory)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro, you are not even registered",
+					},
+				})
+				return
+			}
+
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786"
 
 			if !hasPermission {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -102,42 +119,44 @@ var (
 					},
 				})
 			} else {
-				guild, _ := s.Guild(GuildID)
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
-				var roles []string
-				var index int
-				roles = append(roles, "1195135956471255140")
-				roles = append(roles, "1195858311627669524")
-				roles = append(roles, "1195858271349784639")
-				roles = append(roles, "1195136106811887718")
-				roles = append(roles, "1195858179590987866")
-				roles = append(roles, "1195137362259349504")
-				roles = append(roles, "1195136284478410926")
-				roles = append(roles, "1195137253408768040")
-				roles = append(roles, "1195758308519325716")
-				roles = append(roles, "1195758241221722232")
-				roles = append(roles, "1195758137563689070")
-				roles = append(roles, "1195757362439528549")
-				roles = append(roles, "1195136491148550246")
-				roles = append(roles, "1195708423229165578")
-				roles = append(roles, "1195137477497868458")
-				roles = append(roles, "1195136604373782658")
-				roles = append(roles, "1195711869378367580")
 
-				for i, guildRole := range roles {
-					for _, memberRole := range member.Roles {
-						if guildRole == memberRole {
-							index = i
-						}
-					}
+				var currentRankNumber int
+				var currentRankID string
+				rows := db.QueryRow("SELECT number, ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", member.User.ID)
+				err = rows.Scan(&currentRankNumber, &currentRankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "The selected member cannot be promoted because they are not registered",
+						},
+					})
+					return
 				}
+
 				amount := 1
 				if len(i.ApplicationCommandData().Options) > 2 {
 					amount = int(i.ApplicationCommandData().Options[2].IntValue())
 				}
 
-				err := s.GuildMemberRoleRemove(GuildID, member.User.ID, roles[index])
+				var newRankID string
+				var newRankName string
+				var newRankAbbreviation string
+				rows = db.QueryRow("SELECT ID, name, abbreviation FROM Rank WHERE number=?", currentRankNumber+amount)
+				err = rows.Scan(&newRankID, &newRankName, &newRankAbbreviation)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "The selected member cannot be promoted because they are not registered",
+						},
+					})
+					return
+				}
+
+				_, err = db.Exec("UPDATE Pilot SET fk_rank_holds=? WHERE pk_userID=?", newRankID, member.User.ID)
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -147,67 +166,85 @@ var (
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, member.User.ID, roles[index-amount])
 
-				var RoleName string
-				for _, guildRole := range guild.Roles {
-					if guildRole.ID == roles[index-amount] {
-						RoleName = guildRole.Name
-					}
+				err = s.GuildMemberRoleRemove(GuildID, member.User.ID, currentRankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Error: " + err.Error(),
+						},
+					})
+					return
 				}
+				s.GuildMemberRoleAdd(GuildID, member.User.ID, newRankID)
+
+				currentName := member.Nick
+				if len(strings.Split(currentName, ".")) == 1 {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Selected user can not be promoted because their nickname is not in the correct format",
+						},
+					})
+					return
+				}
+				s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
+
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Congratulations, " + member.Mention() + " you have been promoted to " + RoleName + ":\n" + i.ApplicationCommandData().Options[1].StringValue(),
+						Content: "Congratulations, " + member.Mention() + " you have been promoted to " + newRankName + ":\n" + i.ApplicationCommandData().Options[1].StringValue(),
 					},
 				})
 			}
 		},
 		"demote": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			hasPermission := false
-			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195858179590987866" {
-					hasPermission = true
-				}
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
 			}
+			defer db.Close()
+
+			var rankCategory string
+			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.Member.User.ID)
+			err = rows.Scan(&rankCategory)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro, you are not even registered",
+					},
+				})
+				return
+			}
+
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786"
 
 			if !hasPermission {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Sorry pilot, you do not possess the permission to demote a member",
+						Content: "Sorry pilot, you do not possess the permission to promote a member",
 					},
 				})
 			} else {
-				guild, _ := s.Guild(GuildID)
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
-				var roles []string
-				var index int
-				roles = append(roles, "1195135956471255140")
-				roles = append(roles, "1195858311627669524")
-				roles = append(roles, "1195858271349784639")
-				roles = append(roles, "1195136106811887718")
-				roles = append(roles, "1195858179590987866")
-				roles = append(roles, "1195137362259349504")
-				roles = append(roles, "1195136284478410926")
-				roles = append(roles, "1195137253408768040")
-				roles = append(roles, "1195758308519325716")
-				roles = append(roles, "1195758241221722232")
-				roles = append(roles, "1195758137563689070")
-				roles = append(roles, "1195757362439528549")
-				roles = append(roles, "1195136491148550246")
-				roles = append(roles, "1195708423229165578")
-				roles = append(roles, "1195137477497868458")
-				roles = append(roles, "1195136604373782658")
-				roles = append(roles, "1195711869378367580")
 
-				for i, guildRole := range roles {
-					for _, memberRole := range member.Roles {
-						if guildRole == memberRole {
-							index = i
-						}
-					}
+				var currentRankNumber int
+				var currentRankID string
+				rows := db.QueryRow("SELECT number, ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", member.User.ID)
+				err = rows.Scan(&currentRankNumber, &currentRankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "The selected member cannot be promoted because they are not registered",
+						},
+					})
+					return
 				}
 
 				amount := 1
@@ -215,7 +252,22 @@ var (
 					amount = int(i.ApplicationCommandData().Options[2].IntValue())
 				}
 
-				err := s.GuildMemberRoleRemove(GuildID, member.User.ID, roles[index])
+				var newRankID string
+				var newRankName string
+				var newRankAbbreviation string
+				rows = db.QueryRow("SELECT ID, name, abbreviation FROM Rank WHERE number=?", currentRankNumber-amount)
+				err = rows.Scan(&newRankID, &newRankName, &newRankAbbreviation)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "The selected member cannot be demoted because they are not registered",
+						},
+					})
+					return
+				}
+
+				_, err = db.Exec("UPDATE Pilot SET fk_rank_holds=? WHERE pk_userID=?", newRankID, member.User.ID)
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -225,19 +277,30 @@ var (
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, member.User.ID, roles[index+amount])
 
-				var RoleName string
-				for _, guildRole := range guild.Roles {
-					if guildRole.ID == roles[index+amount] {
-						RoleName = guildRole.Name
-					}
+				err = s.GuildMemberRoleRemove(GuildID, member.User.ID, currentRankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Error: " + err.Error(),
+						},
+					})
+					return
+				}
+				s.GuildMemberRoleAdd(GuildID, member.User.ID, newRankID)
+
+				currentName := member.Nick
+				if len(strings.Split(currentName, ".")) == 1 {
+					s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+". "+currentName)
+				} else {
+					s.GuildMemberNickname(GuildID, member.User.ID, newRankAbbreviation+"."+strings.Split(currentName, ".")[1])
 				}
 
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: member.Mention() + ", whatever you did was not good because you have been demoted to " + RoleName + ":\n" + i.ApplicationCommandData().Options[1].StringValue(),
+						Content: member.Mention() + " you have been demoted to " + newRankName + ":\n" + i.ApplicationCommandData().Options[1].StringValue(),
 					},
 				})
 			}
@@ -352,12 +415,27 @@ var (
 			}
 		},
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			hasPermission := false
-			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1214708712124710953" || role == "1195858179590987866" || role == "1214708712124710953" {
-					hasPermission = true
-				}
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
 			}
+			defer db.Close()
+
+			var rankCategory string
+			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.Member.User.ID)
+			err = rows.Scan(&rankCategory)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro, you are not even registered",
+					},
+				})
+				return
+			}
+
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786"
 
 			if !hasPermission {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -369,35 +447,38 @@ var (
 			} else {
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
-				var roles []string
-				var index int
-				roles = append(roles, "1195135956471255140")
-				roles = append(roles, "1195858311627669524")
-				roles = append(roles, "1195858271349784639")
-				roles = append(roles, "1195136106811887718")
-				roles = append(roles, "1195858179590987866")
-				roles = append(roles, "1195137362259349504")
-				roles = append(roles, "1195136284478410926")
-				roles = append(roles, "1195137253408768040")
-				roles = append(roles, "1195758308519325716")
-				roles = append(roles, "1195758241221722232")
-				roles = append(roles, "1195758137563689070")
-				roles = append(roles, "1195757362439528549")
-				roles = append(roles, "1195136491148550246")
-				roles = append(roles, "1195708423229165578")
-				roles = append(roles, "1195137477497868458")
-				roles = append(roles, "1195136604373782658")
-				roles = append(roles, "1195711869378367580")
 
-				for i, guildRole := range roles {
-					for _, memberRole := range member.Roles {
-						if guildRole == memberRole {
-							index = i
+				for _, d := range donators {
+					if d.userID == userID {
+						donators[slices.Index(donators, d)].count = d.count + 1
+						d.count++
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: fmt.Sprintf("Oh boy! Increasing %v's execution count to %v", member.User.Mention(), d.count),
+							},
+						})
+						if !d.sacrificed {
+							d.sacrificed = false
 						}
+						return
 					}
 				}
 
-				err := s.GuildMemberRoleRemove(GuildID, userID, roles[index])
+				var rankID string
+				rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", userID)
+				err = rows.Scan(&rankID)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Bro, you are not even registered",
+						},
+					})
+					return
+				}
+
+				err := s.GuildMemberRoleRemove(GuildID, userID, rankID)
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -407,10 +488,10 @@ var (
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, userID, "1195136604373782658")
+
 				donators = append(donators, Donator{
 					userID:     userID,
-					roleID:     roles[index],
+					count:      1,
 					sacrificed: false,
 				})
 
@@ -442,11 +523,24 @@ var (
 			}
 		},
 		"revive": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			hasPermission := false
-			for _, role := range i.Member.Roles {
-				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" || role == "1195711869378367580" || role == "1195858179590987866" || role == "1214708712124710953" {
-					hasPermission = true
-				}
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			var rankCategory string
+			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.Member.User.ID)
+			err = rows.Scan(&rankCategory)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro, you are not even registered",
+					},
+				})
+				return
 			}
 
 			d, ok := getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
@@ -459,107 +553,86 @@ var (
 				})
 				return
 			}
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786" || d.sacrificed
 
-			member, _ := s.GuildMember(GuildID, d.userID)
-			counter := 1
-			for ok {
-				if !hasPermission && !d.sacrificed {
-					if counter == 1 {
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)",
-							},
-						})
-					} else {
-						s.ChannelMessageSend(i.ChannelID, "Sorry pilot, you do not possess the permission to revivea member (hehe revivea)")
-					}
-					return
+			if !hasPermission {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Sorry pilot, you do not possess the permission to execute a member",
+					},
+				})
+			} else {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Commencing revive sequence",
+					},
+				})
+
+				count := d.count
+				reviveDonator(d)
+
+				for j := 0; j < count; j++ {
+					s.ChannelMessageSend(i.ChannelID, "https://tenor.com/jZjkITIubzW.gif")
 				}
 
-				err := s.GuildMemberRoleRemove(GuildID, d.userID, "1195136604373782658")
+				var rankID string
+				rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				err = rows.Scan(&rankID)
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "Error: " + err.Error(),
+							Content: "Bro, you are not even registered",
 						},
 					})
 					return
 				}
-				s.GuildMemberRoleAdd(GuildID, d.userID, d.roleID)
-				reviveDonator(d)
+				s.GuildMemberRoleAdd(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID, rankID)
 
-				if rand.Intn(10) == 3 {
-					if counter == 1 {
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "What the fuck Ron? How did you even do that?",
-							},
-						})
-					} else {
-						s.ChannelMessageSend(i.ChannelID, "What the fuck Ron? How did you even do that?")
-					}
-
-					wh, _ := s.WebhookCreate(i.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
-
-					s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
-						Content:   "🤖 Attention, fellow Pilots! 🤖\n\nHold onto your helmets, because you won't believe this one! Turns out, when our misbehaving friend " + member.Mention() + " got zapped into the digital void, they stumbled upon a secret stash of virtual tacos hidden in the server's binary code! Yep, you heard that right, folks! Those tantalizing tacos triggered an unforeseen glitch in the system, causing " + member.Mention() + " to materialize back into our realm with a belly full of tacos and a renewed sense of mischief! Who knew tacos could be the ultimate revival elixir, huh? 🌮💫 So, let's welcome " + member.Mention() + " back with open arms (and maybe a few extra tacos just in case)! 🤖🚀",
-						Username:  "Ron",
-						AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
-					})
-					s.WebhookDelete(wh.ID)
-				} else {
-					if counter == 1 {
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: member.Mention() + " has been revived!",
-							},
-						})
-					} else {
-						s.ChannelMessageSend(i.ChannelID, member.Mention()+" has been revived!")
-					}
-				}
-
-				d, ok = getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
-				counter++
+				s.ChannelMessageSend(i.ChannelID, fmt.Sprintf("Member fully revived! (Execution count: %v)", count))
 			}
-			s.ChannelMessageSend(i.ChannelID, member.Mention()+" execution count: "+strconv.Itoa(counter-1))
 		},
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
 			userID := i.Member.User.ID
 			member, _ := s.GuildMember(GuildID, userID)
-			var roles []string
-			var index int
-			roles = append(roles, "1195135956471255140")
-			roles = append(roles, "1195858311627669524")
-			roles = append(roles, "1195858271349784639")
-			roles = append(roles, "1195136106811887718")
-			roles = append(roles, "1195858179590987866")
-			roles = append(roles, "1195137362259349504")
-			roles = append(roles, "1195136284478410926")
-			roles = append(roles, "1195137253408768040")
-			roles = append(roles, "1195758308519325716")
-			roles = append(roles, "1195758241221722232")
-			roles = append(roles, "1195758137563689070")
-			roles = append(roles, "1195757362439528549")
-			roles = append(roles, "1195136491148550246")
-			roles = append(roles, "1195708423229165578")
-			roles = append(roles, "1195137477497868458")
-			roles = append(roles, "1195136604373782658")
-			roles = append(roles, "1195711869378367580")
 
-			for i, guildRole := range roles {
-				for _, memberRole := range member.Roles {
-					if guildRole == memberRole {
-						index = i
-					}
+			for _, d := range donators {
+				if d.userID == userID {
+					donators[slices.Index(donators, d)].count = d.count + 1
+					d.count++
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: fmt.Sprintf("Oh boy! Increasing %v's execution count to %v", member.User.Mention(), d.count),
+						},
+					})
+					return
 				}
 			}
 
-			err := s.GuildMemberRoleRemove(GuildID, userID, roles[index])
+			var rankID string
+			rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", userID)
+			err = rows.Scan(&rankID)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro, you are not even registered",
+					},
+				})
+				return
+			}
+
+			err = s.GuildMemberRoleRemove(GuildID, userID, rankID)
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -569,17 +642,17 @@ var (
 				})
 				return
 			}
-			s.GuildMemberRoleAdd(GuildID, userID, "1195136604373782658")
+
 			donators = append(donators, Donator{
 				userID:     userID,
-				roleID:     roles[index],
+				count:      1,
 				sacrificed: true,
 			})
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Confirming the sacrifice of " + member.Mention(),
+					Content: "Confirming sacrifice of " + member.Mention(),
 				},
 			})
 		},
@@ -1406,8 +1479,8 @@ type Personality struct {
 }
 type Donator struct {
 	userID     string
-	roleID     string
 	sacrificed bool
+	count      int
 }
 type Impersonator struct {
 	userID    string
@@ -1464,8 +1537,6 @@ func main() {
 	}
 
 	fmt.Println("Commands added!")
-
-	session.ChannelMessageEdit("1249486992077754389", "1249785657589629081", "React <:verger:1225937868023795792> if you want to be pinged for website updates!")
 
 	<-make(chan struct{})
 }

@@ -1588,7 +1588,7 @@ func addHandlers() {
 		defer db.Close()
 
 		// Insert data into the table
-		stmt, err := db.Prepare("INSERT INTO Pilot(pk_userID, specialisation, isSimulacrum, fk_titan_pilots, fk_battalion_isPartOf, fk_personalship_possesses) VALUES (?, ?, ?, ?, ?, ?)")
+		stmt, err := db.Prepare("INSERT INTO Pilot(pk_userID, specialisation, isSimulacrum, fk_titan_pilots, fk_battalion_isPartOf, fk_personalship_possesses, fk_rank_holds) VALUES (?, ?, ?, ?, ?, ?, ?)")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -1627,7 +1627,36 @@ func addHandlers() {
 			return
 		}
 
-		_, err = stmt.Exec(&id, &specialisation, &isSimulacrum, &titanCallsign, &battalion, &personalShip)
+		var rankID string
+		rows := db.QueryRow("SELECT ID FROM Rank WHERE abbreviation=?", strings.Split(i.Member.Nick, ".")[0])
+		err = rows.Scan(&rankID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Please add the correct abbreviation of your current rank to your name",
+				},
+			})
+			return
+		}
+
+		ok = false
+		for _, r := range i.Member.Roles {
+			if r == rankID {
+				ok = true
+			}
+		}
+		if !ok {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Nice try, idiot",
+				},
+			})
+			return
+		}
+
+		_, err = stmt.Exec(&id, &specialisation, &isSimulacrum, &titanCallsign, &battalion, &personalShip, &rankID)
 		if err != nil {
 			if strings.Contains(err.Error(), "UNIQUE") {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
