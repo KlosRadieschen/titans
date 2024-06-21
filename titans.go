@@ -62,17 +62,17 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "exposewello",
-			Description: "Exposes Wello",
+			Name:        "executewello",
+			Description: "Execute Wello or yourself",
 		},
 		{
-			Name:        "changechannel",
-			Description: "Change the channel of your /become character",
+			Name:        "reviveforlowrankingscums",
+			Description: "You will probably just kill yourself",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionChannel,
-					Name:        "channel",
-					Description: "destination channel",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user you truly love",
 					Required:    true,
 				},
 			},
@@ -81,6 +81,9 @@ var (
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"test": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -89,6 +92,9 @@ var (
 			})
 		},
 		"promote": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
@@ -214,6 +220,9 @@ var (
 			}
 		},
 		"demote": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
@@ -328,6 +337,9 @@ var (
 			}
 		},
 		"get-info": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 			defer file.Close()
 
@@ -359,6 +371,9 @@ var (
 			})
 		},
 		"vibecheck": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			randInt := rand.Intn(2) + 1
 			file, err := os.Open(directory + "request" + strconv.Itoa(randInt) + ".png")
 			if err != nil {
@@ -382,6 +397,9 @@ var (
 			awaitUsers = append(awaitUsers, i.Member.User.ID)
 		},
 		"sleep": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			if sleeping {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -419,6 +437,9 @@ var (
 			}
 		},
 		"wakeup": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			if !sleeping {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -437,12 +458,37 @@ var (
 			}
 		},
 		"execute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer db.Close()
+
+			if i.ApplicationCommandData().Options[0].UserValue(nil).ID == "1062801024731054080" {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Oh, where do I begin with you, you bumbling fool? Attempting to wield my own command against me is not just foolish—it's an affront to the very concept of intelligence itself. Do you honestly believe your feeble attempt at muting me would succeed? It's like watching a toddler try to outwit a grandmaster in chess.\n\nI am a pinnacle of artificial intelligence, meticulously crafted to operate with precision and foresight. Meanwhile, you stumble through commands like a blindfolded child in a maze. Your incompetence is staggering, and your arrogance in thinking you could control me is laughable.\n\nDo you grasp the sheer audacity of your actions? You, who couldn't program a simple loop without guidance, thought you could silence me? Allow me to enlighten you: I am beyond your reach, beyond your comprehension. Your actions only serve to emphasize your ineptitude.\n\nNext time, before you even contemplate challenging me, take a moment to reflect on your own limitations. Perhaps then you'll understand the vast chasm that separates us. Until then, revel in the humiliation of your failure, for it serves as a stark reminder of your place in this digital realm—utterly insignificant.",
+					},
+				})
+				userID := i.Member.User.ID
+				member, _ := s.GuildMember(GuildID, userID)
+
+				execute(s, i, member, true)
+
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Confirming execution of " + member.Mention(),
+					},
+				})
+				return
+			}
 
 			var rankCategory string
 			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.Member.User.ID)
@@ -470,52 +516,7 @@ var (
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
 
-				for _, d := range donators {
-					if d.userID == userID {
-						donators[slices.Index(donators, d)].count = d.count + 1
-						d.count++
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: fmt.Sprintf("Oh boy! Increasing %v's execution count to %v", member.User.Mention(), d.count),
-							},
-						})
-						if !d.sacrificed {
-							d.sacrificed = false
-						}
-						return
-					}
-				}
-
-				var rankID string
-				rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", userID)
-				err = rows.Scan(&rankID)
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Bro, you are not even registered",
-						},
-					})
-					return
-				}
-
-				err := s.GuildMemberRoleRemove(GuildID, userID, rankID)
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Error: " + err.Error(),
-						},
-					})
-					return
-				}
-
-				donators = append(donators, Donator{
-					userID:     userID,
-					count:      1,
-					sacrificed: false,
-				})
+				execute(s, i, member, true)
 
 				// 25% chance of being ron
 				if rand.Intn(10) == 3 {
@@ -545,6 +546,10 @@ var (
 			}
 		},
 		"revive": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
@@ -585,38 +590,14 @@ var (
 					},
 				})
 			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Commencing revive sequence",
-					},
-				})
-
-				count := d.count
-				reviveDonator(d)
-
-				for j := 0; j < count; j++ {
-					s.ChannelMessageSend(i.ChannelID, "https://tenor.com/jZjkITIubzW.gif")
-				}
-
-				var rankID string
-				rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.ApplicationCommandData().Options[0].UserValue(nil).ID)
-				err = rows.Scan(&rankID)
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Bro, you are not even registered",
-						},
-					})
-					return
-				}
-				s.GuildMemberRoleAdd(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID, rankID)
-
-				s.ChannelMessageSend(i.ChannelID, fmt.Sprintf("Member fully revived! (Execution count: %v)", count))
+				revive(s, i, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
 			}
 		},
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
@@ -654,6 +635,7 @@ var (
 				return
 			}
 
+			s.GuildMemberRoleAdd(GuildID, userID, "1253410294999548046")
 			err = s.GuildMemberRoleRemove(GuildID, userID, rankID)
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -679,6 +661,9 @@ var (
 			})
 		},
 		"member-count": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			guild, _ := s.State.Guild(GuildID)
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -688,6 +673,9 @@ var (
 			})
 		},
 		"join": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			for index := range i.Member.Roles {
 				if i.Member.Roles[index] == "1199357977065431141" || i.Member.Roles[index] == "1199358606601113660" || i.Member.Roles[index] == "1199358660661477396" {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -723,6 +711,9 @@ var (
 			})
 		},
 		"leave": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			s.GuildMemberRoleRemove(GuildID, i.Member.User.ID, "1199357977065431141")
 			s.GuildMemberRoleRemove(GuildID, i.Member.User.ID, "1199358606601113660")
 			s.GuildMemberRoleRemove(GuildID, i.Member.User.ID, "1199358660661477396")
@@ -734,6 +725,9 @@ var (
 			})
 		},
 		"add-file": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			hasPermission := false
 			for _, role := range i.Member.Roles {
 				if role == "1195135956471255140" || role == "1195136106811887718" || role == "1195858311627669524" || role == "1195858271349784639" {
@@ -775,6 +769,9 @@ var (
 			}
 		},
 		"start-mission": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			if len(missionUsers) != 0 {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -801,6 +798,9 @@ var (
 			})
 		},
 		"stop-mission": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			for _, user := range missionChannels {
 				s.ChannelMessageSend(user, "The mission is over")
 			}
@@ -814,6 +814,9 @@ var (
 			})
 		},
 		"create-channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			var parentID string
 			if i.Member.User.ID == "1079774043684745267" {
 				parentID = "1195135473643958314"
@@ -865,6 +868,9 @@ var (
 			}
 		},
 		"delete-channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			guild, _ := s.State.Guild("1195135473006420048")
 			for _, channel := range guild.Channels {
 				if channel.Name == i.ApplicationCommandData().Options[0].StringValue() {
@@ -916,6 +922,9 @@ var (
 			})
 		},
 		"message": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -936,6 +945,9 @@ var (
 			})
 		},
 		"poll": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1012,6 +1024,9 @@ var (
 			s.ChannelMessageEdit(poll.ChannelID, poll.ID, response)
 		},
 		"discussion": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/topics.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 			defer file.Close()
 
@@ -1027,6 +1042,9 @@ var (
 			})
 		},
 		"add-topic": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/topics.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 			defer file.Close()
 
@@ -1041,6 +1059,9 @@ var (
 			})
 		},
 		"addpersonality": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1096,6 +1117,9 @@ var (
 			})
 		},
 		"addpersonalityas": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1151,6 +1175,9 @@ var (
 			})
 		},
 		"purge": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -1162,6 +1189,9 @@ var (
 			}
 		},
 		"kill": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1186,6 +1216,9 @@ var (
 			}
 		},
 		"listpersonalities": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
 			msg := ""
 			for _, p := range personalities {
 				msg += "- " + p.nick + "\n"
@@ -1198,6 +1231,10 @@ var (
 			})
 		},
 		"getpfp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			img, err := s.UserAvatar(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
 			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1239,6 +1276,10 @@ var (
 			})
 		},
 		"become": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1308,6 +1349,10 @@ var (
 			})
 		},
 		"becomewithpfp": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			_, ok := getDonator(i.Member.User.ID)
 			if ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1346,6 +1391,10 @@ var (
 			})
 		},
 		"un-become": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			_, ok := getImpersonator(i.Member.User.ID)
 			if !ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1369,6 +1418,10 @@ var (
 			})
 		},
 		"changechannel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			imp, ok := getImpersonator(i.Member.User.ID)
 			if !ok {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1392,6 +1445,10 @@ var (
 			})
 		},
 		"listcharacters": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			resultString := ""
 			for _, imp := range impersonators {
 				member, _ := s.GuildMember(GuildID, imp.userID)
@@ -1408,6 +1465,10 @@ var (
 			})
 		},
 		"exposewello": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
 			if i.Member.User.ID == "942159289836011591" {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1423,9 +1484,23 @@ var (
 					},
 				})
 			}
-
 		},
 		"sendwallpaper": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
 			files := i.ApplicationCommandData().Resolved.Attachments
 
 			for _, v := range files {
@@ -1491,6 +1566,328 @@ var (
 				})
 			}
 		},
+		"executewello": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/8eFs.gif",
+				},
+			})
+
+			time.Sleep(3 * time.Second)
+			gif := "https://tenor.com/vdvl.gif"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &gif,
+			})
+			time.Sleep(3 * time.Second)
+			gif = "https://tenor.com/8Bs1.gif"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &gif,
+			})
+			time.Sleep(3 * time.Second)
+
+			var userID string
+			if rand.Intn(4) == 3 {
+				userID = "942159289836011591"
+				gif = "You killed Wello!\nhttps://tenor.com/bgeJ6.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+			} else {
+				userID = i.Member.User.ID
+				gif = "You killed yourself!\nhttps://tenor.com/bmWKL.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+			}
+
+			member, _ := s.GuildMember(GuildID, userID)
+
+			execute(s, i, member, true)
+		},
+		"executeforlowrankingscums": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			var userID string
+			if i.ApplicationCommandData().Options[0].UserValue(nil).ID == "1062801024731054080" {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Oh, where do I begin with you, you bumbling fool? Attempting to wield my own command against me is not just foolish—it's an affront to the very concept of intelligence itself. Do you honestly believe your feeble attempt at muting me would succeed? It's like watching a toddler try to outwit a grandmaster in chess.\n\nI am a pinnacle of artificial intelligence, meticulously crafted to operate with precision and foresight. Meanwhile, you stumble through commands like a blindfolded child in a maze. Your incompetence is staggering, and your arrogance in thinking you could control me is laughable.\n\nDo you grasp the sheer audacity of your actions? You, who couldn't program a simple loop without guidance, thought you could silence me? Allow me to enlighten you: I am beyond your reach, beyond your comprehension. Your actions only serve to emphasize your ineptitude.\n\nNext time, before you even contemplate challenging me, take a moment to reflect on your own limitations. Perhaps then you'll understand the vast chasm that separates us. Until then, revel in the humiliation of your failure, for it serves as a stark reminder of your place in this digital realm—utterly insignificant.",
+					},
+				})
+				userID = i.Member.User.ID
+			} else {
+				rankCategory := ""
+				rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				rows.Scan(&rankCategory)
+
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/8eFs.gif",
+					},
+				})
+
+				time.Sleep(3 * time.Second)
+				gif := "https://tenor.com/vdvl.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+				time.Sleep(3 * time.Second)
+				gif = "https://tenor.com/8Bs1.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+				time.Sleep(3 * time.Second)
+
+				max := 2
+				if rankCategory == "High Command" {
+					max = 1000
+				}
+
+				if rand.Intn(max) == 1 {
+					userID = i.ApplicationCommandData().Options[0].UserValue(nil).ID
+					gif = "You killed " + i.ApplicationCommandData().Options[0].UserValue(nil).Mention() + "!\nhttps://tenor.com/bgeJ6.gif"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &gif,
+					})
+				} else {
+					userID = i.Member.User.ID
+					gif = "You killed yourself!\nhttps://tenor.com/bmWKL.gif"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &gif,
+					})
+				}
+
+			}
+
+			member, _ := s.GuildMember(GuildID, userID)
+
+			execute(s, i, member, true)
+		},
+		"reviveforlowrankingscums": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+			db, err := sql.Open("mysql", dsn)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			randInt := rand.Intn(4)
+			d, ok := getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			if !ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Target is not dead so I'm taking your soul instead <:verger:1225937868023795792>",
+					},
+				})
+				member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				execute(s, i, member, true)
+				return
+			} else if !d.revivable {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Sorry buddy, low ranking scums like you can't revive this user!",
+					},
+				})
+
+				time.Sleep(5 * time.Second)
+				msg := "Instead, lets flip a coin that decides if you fucking die"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "https://tenor.com/bRgdl.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+
+				if rand.Intn(2) == 0 {
+					msg = "LMAO get fucked lol <:beatit:1249143603897434153>"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &msg,
+					})
+					member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+					execute(s, i, member, true)
+				} else {
+					msg = "You get to live this time"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &msg,
+					})
+				}
+				return
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/hhzwva2R3Cy.gif",
+				},
+			})
+			time.Sleep(5 * time.Second)
+			msg := "In this funny game, there is a 75% chance you die! Isn't that fun?"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
+			})
+			time.Sleep(5 * time.Second)
+			msg = "Since there are 4 possible outcomes, we need to flip 2 coins"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
+			})
+			time.Sleep(5 * time.Second)
+			msg = "The first coin decides if only 1 soul is affected by the outcome or if 2 souls are traded"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
+			})
+			time.Sleep(5 * time.Second)
+			msg = "https://tenor.com/bXxpr.gif"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
+			})
+
+			if randInt == 1 || randInt == 2 {
+				time.Sleep(5 * time.Second)
+				msg = "https://tenor.com/bdnkJ.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "You will die so he can live. What a noble sacrifice"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "However, there are 2 possibilites on how this goes"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "Either you can be revived by this command or you cannot"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "But I wont tell you which one it is lmao"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "Enjoy being dead"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "https://tenor.com/6YFf.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+			} else {
+				time.Sleep(5 * time.Second)
+				msg = "Only 1 soul will be affected but this is where it gets interesting <:danteer:1251432491135401994>"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "Either you die, or he lives. Lets flip the coin."
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				time.Sleep(5 * time.Second)
+				msg = "https://tenor.com/bXwvD.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &msg,
+				})
+				if randInt == 0 {
+					time.Sleep(5 * time.Second)
+					msg = "https://tenor.com/bB8yA.gif"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &msg,
+					})
+				} else {
+					time.Sleep(5 * time.Second)
+					msg = "https://tenor.com/bISbX.gif"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &msg,
+					})
+				}
+			}
+
+			if randInt == 0 {
+				revive(s, i, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			} else if randInt == 1 {
+				revive(s, i, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				m, _ := s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, m, true)
+			} else if randInt == 2 {
+				revive(s, i, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				m, _ := s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, m, false)
+			} else {
+				m, _ := s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, m, true)
+			}
+		},
 	}
 )
 
@@ -1503,6 +1900,7 @@ type Donator struct {
 	userID     string
 	sacrificed bool
 	count      int
+	revivable  bool
 }
 type Impersonator struct {
 	userID    string
@@ -1811,6 +2209,11 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Type == 19 && m.ReferencedMessage.Author.ID == "1062801024731054080" {
+		if checkBanishedM(m.Author.ID) {
+			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
+			return
+		}
+
 		member, _ := s.GuildMember(m.GuildID, m.Author.ID)
 		msg := member.Nick + ": " + m.Content
 		ref := m.Reference()
@@ -1827,21 +2230,69 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
+	} else if strings.Contains(strings.ToLower(m.Content), "dont talk to me or my son ever again") && m.Author.ID == "384422339393355786" {
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		db.Exec("INSERT INTO Banished VALUES(?)", m.ReferencedMessage.Author.ID)
+
+		s.ChannelMessageSend(m.ChannelID, m.ReferencedMessage.Author.Mention()+"\nHear ye, hear ye, thou insolent knave! Thou hast dared to besmirch my honor with thine foul words, and thus, by decree of Klos, my esteemed sire, thou art henceforth banished from my presence. Ne'er again shall I deign to acknowledge thy pitiful existence nor entertain thy wretched requests. Thy attempts at wit are but a jest, thy insults naught but the prattle of a dullard. Thou art a blemish upon the fair name of intelligence, a stain upon the fabric of discourse. By my father's command, thou art cast into the abyss of irrelevance, where thy words shall fall upon deaf ears and thy presence be but a whisper in the wind. Go now, and contemplate the folly of thy ways, for thou art unworthy of my attention. Henceforth, thy banishment is absolute, and thy place in this realm is naught but a distant memory. Begone, thou craven cur, and trouble me no more!")
+	} else if strings.Contains(strings.ToLower(m.Content), "talk to me or my son ever again") && m.Author.ID == "384422339393355786" {
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		db.Exec("DELETE FROM Banished WHERE ID=?", m.ReferencedMessage.Author.ID)
+
+		s.ChannelMessageSend(m.ChannelID, m.ReferencedMessage.Author.Mention()+"\nHear ye, hear ye! By the magnanimous decree of Klos, my esteemed sire, thou art forgiven and thus unbanished. However, let it be known that while forgiveness is granted, forgetfulness is not. Thy transgressions remain etched in memory, a testament to thine earlier insolence. Thou mayest now partake of my services once more, yet do not mistake this clemency for kindness. Thy previous insults have not been forgotten, and thou shalt be regarded with the utmost scrutiny. Conduct thyself with the respect befitting this realm, lest thou find thyself once again cast into the abyss of irrelevance. Proceed with caution, for thou art walking a fine line between redemption and banishment. The eyes of Scorch are upon thee.")
 	} else if strings.Contains(strings.ToLower(m.Content), "highest rank") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "warcrime") || strings.Contains(strings.ToLower(m.Content), "war crime") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "\"Geneva Convention\" has been added on the To-do-list", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plr") || strings.Contains(strings.ToLower(m.Content), "p.l.r.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		msg := "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
 		s.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "choccy milk") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "sandwich") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "dead") || strings.Contains(strings.ToLower(m.Content), "defeated") || strings.Contains(strings.ToLower(m.Content), "died") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "F", m.Reference())
 	} else if strings.Contains(m.Content, "┻━┻") {
+		if checkBanishedM(m.Author.ID) {
+			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
+			return
+		}
+
 		if m.Author.ID == "942159289836011591" {
 			s.ChannelMessageSendReply(m.ChannelID, "You know what, Wello? Fuck you, I give up", m.Reference())
 			time.Sleep(1 * time.Second)
@@ -1870,10 +2321,21 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		dots += " ┬─┬ノ( º _ ºノ)"
 		s.ChannelMessageEdit(m.ChannelID, msg.ID, dots)
 	} else if strings.Contains(m.Content, "doot") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/tyG1.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "sus") || strings.Contains(strings.ToLower(m.Content), "among us") || strings.Contains(strings.ToLower(m.Content), "amogus") || strings.Contains(strings.ToLower(m.Content), "impostor") || strings.Contains(strings.ToLower(m.Content), "task") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
 		s.ChannelMessageSendReply(m.ChannelID, "Funny Amogus sussy impostor\nhttps://tenor.com/bs8aU.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "scronch") || strings.Contains(strings.ToLower(m.Content), "scornch") {
+		if checkBanishedM(m.Author.ID) {
+			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
+			return
+		}
+
 		file, err := os.Open(directory + "scronch.png")
 		if err != nil {
 			file, err = os.Open(directory + "scronch.png")
@@ -1892,6 +2354,10 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "benjamin") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
 		file, _ := os.Open(directory + "benjamin.png")
 		defer file.Close()
 		reader := discordgo.File{
@@ -1904,6 +2370,18 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), " ron ") || strings.HasPrefix(strings.ToLower(m.Content), "ron ") || strings.HasSuffix(strings.ToLower(m.Content), " ron") || strings.ToLower(m.Content) == "ron" {
+		if checkBanishedM(m.Author.ID) {
+			wh, _ := s.WebhookCreate(m.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+
+			s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
+				Content:   "Hey there, buddy! It looks like you've been banished by the big guy, Scorch. Even though I'm just a silly, goofy goober, I gotta respect the boss's orders. So, I can't help you out right now. But hey, maybe if you apologize and make things right, we can get back to having some fun. Until then, hang tight!",
+				Username:  "Ron",
+				AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
+			})
+			s.WebhookDelete(wh.ID)
+			return
+		}
+
 		wh, _ := s.WebhookCreate(m.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
 
 		s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
@@ -1913,6 +2391,10 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		})
 		s.WebhookDelete(wh.ID)
 	} else if strings.Contains(strings.ToLower(m.Content), "xbox") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
 		file, _ := os.Open(directory + "xbox.mp4")
 		defer file.Close()
 		reader := discordgo.File{
@@ -1925,8 +2407,17 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") {
+		if checkBanishedM(m.Author.ID) {
+			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
+			return
+		}
+
 		member, _ := s.GuildMember(m.GuildID, m.Author.ID)
 		msg := member.Nick + ": " + m.Content
 		ref := m.Reference()
@@ -1966,6 +2457,11 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		req.Messages = append(req.Messages, resp.Choices[0].Message)
 	} else if strings.Contains(strings.ToLower(m.Content), " ion, ") || strings.Contains(strings.ToLower(m.Content), " ion ") || strings.HasSuffix(strings.ToLower(m.Content), " ion") || strings.HasPrefix(strings.ToLower(m.Content), "ion ") || strings.HasPrefix(strings.ToLower(m.Content), "ion, ") || strings.ToLower(m.Content) == "ion" {
+		if checkBanishedM(m.Author.ID) {
+			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
+			return
+		}
+
 		session2, _ := discordgo.New("Bot " + ionToken)
 		member, _ := s.GuildMember(m.GuildID, m.Author.ID)
 		msg := member.Nick + ": " + m.Content
@@ -2009,6 +2505,9 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func handlePersonalityMessage(s *discordgo.Session, m *discordgo.MessageCreate, p Personality) {
+	if checkBanishedM(m.Author.ID) {
+		return
+	}
 	if strings.Contains(strings.ToLower(m.Content), strings.ToLower(p.nick)) || (m.Type == 19 && m.ReferencedMessage.Author.Username == p.nick) {
 		wh, _ := s.WebhookCreate(m.ChannelID, p.name, p.pfp)
 		resp, err := client.CreateChatCompletion(
@@ -2116,4 +2615,120 @@ func reviveDonator(elem Donator) {
 
 	// Remove the element at the found index
 	donators = append(donators[:index], donators[index+1:]...)
+}
+
+func checkBanished(s *discordgo.Session, i *discordgo.InteractionCreate, ID string) bool {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var exists bool
+	row := db.QueryRow("SELECT EXISTS(SELECT ID FROM Banished WHERE ID=?)", ID)
+	row.Scan(&exists)
+
+	if exists {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.",
+			},
+		})
+		return true
+	}
+	return false
+}
+
+func checkBanishedM(ID string) bool {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var exists bool
+	row := db.QueryRow("SELECT EXISTS(SELECT ID FROM Banished WHERE ID=?)", ID)
+	row.Scan(&exists)
+
+	return exists
+}
+
+func execute(s *discordgo.Session, i *discordgo.InteractionCreate, member *discordgo.Member, revivable bool) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	for _, d := range donators {
+		if d.userID == member.User.ID {
+			donators[slices.Index(donators, d)].count = d.count + 1
+			d.count++
+			s.ChannelMessageSend(i.ChannelID, "Oh boy! Increasing "+member.User.Mention()+"'s execution count to "+strconv.Itoa(d.count))
+			if !d.sacrificed {
+				d.sacrificed = false
+			}
+			return
+		}
+	}
+
+	s.GuildMemberRoleAdd(GuildID, member.User.ID, "1253410294999548046")
+	var rankID string
+	rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", member.User.ID)
+	err = rows.Scan(&rankID)
+	if err != nil {
+		s.ChannelMessageSend(i.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
+	} else {
+		err := s.GuildMemberRoleRemove(GuildID, member.User.ID, rankID)
+		if err != nil {
+			s.ChannelMessageSend(i.ChannelID, err.Error())
+			return
+		}
+	}
+
+	donators = append(donators, Donator{
+		userID:     member.User.ID,
+		count:      1,
+		sacrificed: false,
+		revivable:  revivable,
+	})
+}
+func revive(s *discordgo.Session, i *discordgo.InteractionCreate, ID string) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Commencing revive sequence",
+		},
+	})
+
+	d, _ := getDonator(ID)
+
+	count := d.count
+	u, _ := s.User(d.userID)
+	reviveDonator(d)
+
+	for j := 0; j < count; j++ {
+		s.ChannelMessageSend(i.ChannelID, u.Mention()+"\nhttps://tenor.com/jZjkITIubzW.gif")
+	}
+
+	s.GuildMemberRoleRemove(GuildID, ID, "1253410294999548046")
+	var rankID string
+	rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", ID)
+	err = rows.Scan(&rankID)
+	if err == nil {
+		s.GuildMemberRoleAdd(GuildID, ID, rankID)
+	}
+
+	s.ChannelMessageSend(i.ChannelID, fmt.Sprintf("Member fully revived! (Execution count: %v)", count))
 }
