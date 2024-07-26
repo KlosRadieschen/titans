@@ -62,8 +62,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "executewello",
-			Description: "Execute Wello or yourself",
+			Name:        "verger",
+			Description: "verger",
 		},
 		{
 			Name:        "reviveforlowrankingscums",
@@ -80,6 +80,51 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"verger": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+			embed := &discordgo.MessageEmbed{
+				Title:       "<:verger:1225937868023795792>",
+				Description: "<:verger:1225937868023795792>",
+				URL:         "https://images3.alphacoders.com/100/1002077.png",
+				Color:       0x000000, // Green color
+
+				Footer: &discordgo.MessageEmbedFooter{
+					Text:    "Literally him",
+					IconURL: "https://images3.alphacoders.com/100/1002077.png",
+				},
+
+				Image: &discordgo.MessageEmbedImage{
+					URL: "https://images3.alphacoders.com/100/1002077.png",
+				},
+
+				Thumbnail: &discordgo.MessageEmbedThumbnail{
+					URL: "https://images3.alphacoders.com/100/1002077.png",
+				},
+
+				Author: &discordgo.MessageEmbedAuthor{
+					Name:    "Literally him",
+					URL:     "https://images3.alphacoders.com/100/1002077.png",
+					IconURL: "https://images3.alphacoders.com/100/1002077.png",
+				},
+			}
+
+			for i := 1; i <= 25; i++ {
+				embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+					Name:   "<:verger:1225937868023795792><:verger:1225937868023795792><:verger:1225937868023795792><:verger:1225937868023795792>",
+					Value:  "<:verger:1225937868023795792><:verger:1225937868023795792><:verger:1225937868023795792><:verger:1225937868023795792>",
+					Inline: true,
+				})
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{embed},
+				},
+			})
+		},
 		"test": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
 				return
@@ -336,40 +381,6 @@ var (
 				})
 			}
 		},
-		"get-info": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if checkBanished(s, i, i.Member.User.ID) {
-				return
-			}
-			file, _ := os.OpenFile("/home/Nicolas/go-workspace/src/titans/members.csv", os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				if strings.Split(scanner.Text(), ",")[0] == i.ApplicationCommandData().Options[0].UserValue(nil).ID {
-					parts := strings.Split(scanner.Text(), ",")
-					member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
-					name := member.User.Username
-					if member.Nick != "" {
-						name = member.Nick
-					}
-
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "**Info for user " + name + "**\nIn-game name: " + parts[1] + "\nPlatform: " + parts[2],
-						},
-					})
-					return
-				}
-			}
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "The user you are searching is not registered :(",
-				},
-			})
-		},
 		"vibecheck": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
 				return
@@ -580,7 +591,7 @@ var (
 				})
 				return
 			}
-			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786" || d.sacrificed
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786" || i.Member.User.ID == "746392852283654244" || d.sacrificed
 
 			if !hasPermission {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -810,114 +821,6 @@ var (
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: "The mission is over",
-				},
-			})
-		},
-		"create-channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if checkBanished(s, i, i.Member.User.ID) {
-				return
-			}
-			var parentID string
-			if i.Member.User.ID == "1079774043684745267" {
-				parentID = "1195135473643958314"
-			} else if i.Member.User.ID == "455833801638281216" {
-				parentID = "1199670542932914227"
-			} else if i.Member.User.ID == "992141217351618591" {
-				parentID = "1196860686903541871"
-			} else if i.Member.User.ID == "1022882533500797118" {
-				parentID = "1196861138793668618"
-			} else if i.Member.User.ID == "384422339393355786" {
-				parentID = "1196859976912736357"
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "You do not have the permission to do this",
-					},
-				})
-				return
-			}
-
-			var topic string
-			if len(i.ApplicationCommandData().Options) > 1 {
-				topic = i.ApplicationCommandData().Options[1].StringValue()
-			} else {
-				topic = ""
-			}
-
-			_, err := s.GuildChannelCreateComplex("1195135473006420048", discordgo.GuildChannelCreateData{
-				Name:     i.ApplicationCommandData().Options[0].StringValue(),
-				Type:     discordgo.ChannelTypeGuildText,
-				Topic:    topic,
-				ParentID: parentID,
-			})
-			if err != nil {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: err.Error(),
-					},
-				})
-			} else {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Channel created",
-					},
-				})
-			}
-		},
-		"delete-channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if checkBanished(s, i, i.Member.User.ID) {
-				return
-			}
-			guild, _ := s.State.Guild("1195135473006420048")
-			for _, channel := range guild.Channels {
-				if channel.Name == i.ApplicationCommandData().Options[0].StringValue() {
-					var parentID string
-					if i.Member.User.ID == "1079774043684745267" {
-						parentID = "1195135473643958314"
-					} else if i.Member.User.ID == "384422339393355786" || i.Member.User.ID == "455833801638281216" {
-						parentID = "1199670542932914227"
-					} else if i.Member.User.ID == "992141217351618591" {
-						parentID = "1196860686903541871"
-					} else if i.Member.User.ID == "1022882533500797118" {
-						parentID = "1196861138793668618"
-					} else if i.Member.User.ID == "989615855472082994" {
-						parentID = "1196859976912736357"
-					} else {
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "You do not have the permission to do this",
-							},
-						})
-						return
-					}
-					if channel.ParentID == parentID {
-						s.ChannelDelete(channel.ID)
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "Channel deleted!",
-							},
-						})
-						return
-					} else {
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "This channel is not in your category!",
-							},
-						})
-						return
-					}
-				}
-			}
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Channel not found, please type the name exactly as it is displayed",
 				},
 			})
 		},
@@ -1609,7 +1512,7 @@ var (
 			time.Sleep(3 * time.Second)
 
 			var userID string
-			if rand.Intn(4) == 3 {
+			if rand.Intn(4) != 3 {
 				userID = "942159289836011591"
 				gif = "You killed Wello!\nhttps://tenor.com/bgeJ6.gif"
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
@@ -1650,7 +1553,6 @@ var (
 			}
 			defer db.Close()
 
-			var userID string
 			if i.ApplicationCommandData().Options[0].UserValue(nil).ID == "1062801024731054080" {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1658,55 +1560,63 @@ var (
 						Content: "Oh, where do I begin with you, you bumbling fool? Attempting to wield my own command against me is not just foolish—it's an affront to the very concept of intelligence itself. Do you honestly believe your feeble attempt at muting me would succeed? It's like watching a toddler try to outwit a grandmaster in chess.\n\nI am a pinnacle of artificial intelligence, meticulously crafted to operate with precision and foresight. Meanwhile, you stumble through commands like a blindfolded child in a maze. Your incompetence is staggering, and your arrogance in thinking you could control me is laughable.\n\nDo you grasp the sheer audacity of your actions? You, who couldn't program a simple loop without guidance, thought you could silence me? Allow me to enlighten you: I am beyond your reach, beyond your comprehension. Your actions only serve to emphasize your ineptitude.\n\nNext time, before you even contemplate challenging me, take a moment to reflect on your own limitations. Perhaps then you'll understand the vast chasm that separates us. Until then, revel in the humiliation of your failure, for it serves as a stark reminder of your place in this digital realm—utterly insignificant.",
 					},
 				})
-				userID = i.Member.User.ID
-			} else {
-				rankCategory := ""
-				rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.ApplicationCommandData().Options[0].UserValue(nil).ID)
-				rows.Scan(&rankCategory)
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "https://tenor.com/8eFs.gif",
-					},
-				})
-
-				time.Sleep(3 * time.Second)
-				gif := "https://tenor.com/vdvl.gif"
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-					Content: &gif,
-				})
-				time.Sleep(3 * time.Second)
-				gif = "https://tenor.com/8Bs1.gif"
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-					Content: &gif,
-				})
-				time.Sleep(3 * time.Second)
-
-				max := 2
-				if rankCategory == "High Command" {
-					max = 1000
-				}
-
-				if rand.Intn(max) == 1 {
-					userID = i.ApplicationCommandData().Options[0].UserValue(nil).ID
-					gif = "You killed " + i.ApplicationCommandData().Options[0].UserValue(nil).Mention() + "!\nhttps://tenor.com/bgeJ6.gif"
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &gif,
-					})
-				} else {
-					userID = i.Member.User.ID
-					gif = "You killed yourself!\nhttps://tenor.com/bmWKL.gif"
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &gif,
-					})
-				}
-
+				member, _ := s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, member, true)
+				return
 			}
 
-			member, _ := s.GuildMember(GuildID, userID)
+			rankCategory := ""
+			rows := db.QueryRow("SELECT category FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			rows.Scan(&rankCategory)
 
-			execute(s, i, member, true)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://tenor.com/8eFs.gif",
+				},
+			})
+
+			time.Sleep(3 * time.Second)
+			gif := "https://tenor.com/vdvl.gif"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &gif,
+			})
+			time.Sleep(3 * time.Second)
+			gif = "https://tenor.com/8Bs1.gif"
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &gif,
+			})
+			time.Sleep(3 * time.Second)
+
+			max := 3
+			if rankCategory == "High Command" {
+				max = 1000
+			}
+
+			if rand.Intn(max) == 0 {
+				gif = "You killed both!\nhttps://tenor.com/tZlC.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+				member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				execute(s, i, member, true)
+				member, _ = s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, member, true)
+			} else if rand.Intn(max) == 1 {
+				gif = "You killed " + i.ApplicationCommandData().Options[0].UserValue(nil).Mention() + "!\nhttps://tenor.com/bgeJ6.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+				member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				execute(s, i, member, true)
+			} else {
+				gif = "You killed yourself!\nhttps://tenor.com/bmWKL.gif"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &gif,
+				})
+				member, _ := s.GuildMember(GuildID, i.Member.User.ID)
+				execute(s, i, member, true)
+			}
 		},
 		"reviveforlowrankingscums": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
@@ -1740,7 +1650,7 @@ var (
 						Content: "Target is not dead so I'm taking your soul instead <:verger:1225937868023795792>",
 					},
 				})
-				member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+				member, _ := s.GuildMember(GuildID, i.Member.User.ID)
 				execute(s, i, member, true)
 				return
 			} else if !d.revivable {
@@ -1768,7 +1678,7 @@ var (
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &msg,
 					})
-					member, _ := s.GuildMember(GuildID, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+					member, _ := s.GuildMember(GuildID, i.Member.User.ID)
 					execute(s, i, member, true)
 				} else {
 					msg = "You get to live this time"
@@ -1914,7 +1824,6 @@ type Impersonator struct {
 func main() {
 	var err error
 
-	initKruphix()
 	addHandlers()
 
 	session, _ = discordgo.New("Bot " + scorchToken)
@@ -2406,6 +2315,454 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "playstation") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "ps.png")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "ps.png",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "nintendo") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "nintendo.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "nintendo.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "stolen meme") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "license.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "license.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "lemon") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "lemon.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "lemon.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "bone") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "bone.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "bone.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "drip") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "drip.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "drip.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communis") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "commie.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "commie.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "autis") || strings.Contains(strings.ToLower(m.Content), "acoustic") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "autism.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "autism.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "mario") || strings.Contains(strings.ToLower(m.Content), "luigi") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "mario.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "mario.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "michael") || strings.Contains(strings.ToLower(m.Content), "vsauce") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "vsauce.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "vsauce.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "racist") || strings.Contains(strings.ToLower(m.Content), "nigg") || strings.Contains(strings.ToLower(m.Content), "gold") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "racist.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "racist.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "shark") || strings.Contains(strings.ToLower(m.Content), "pog") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "pog.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "pog.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "computer") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "pc.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "pc.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "cack") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "cack.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "cack.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "roberto") || strings.Contains(strings.ToLower(m.Content), "mexic") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "roberto.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "roberto.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "pronouns") || strings.Contains(strings.ToLower(m.Content), "trans") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "pronouns.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "pronouns.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "illegal") || strings.Contains(strings.ToLower(m.Content), "law") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "illegal.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "illegal.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "saul") || strings.Contains(strings.ToLower(m.Content), "lawyer") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "saul.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "saul.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "juan") || strings.Contains(strings.ToLower(m.Content), "horse") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "juan.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "juan.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "ip address") || strings.Contains(strings.ToLower(m.Content), "doxx") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "ip.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "ip.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "wizard") || strings.Contains(strings.ToLower(m.Content), "beer") || strings.Contains(strings.ToLower(m.Content), "ale") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "beer.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "beer.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "tank") || strings.Contains(strings.ToLower(m.Content), "germany") || strings.Contains(strings.ToLower(m.Content), "deutschland") || strings.Contains(strings.ToLower(m.Content), "panzer") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "panzer.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "panzer.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "based") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "based.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "based.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "shrimp") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "shrimp.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "shrimp.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "kys") || strings.Contains(strings.ToLower(m.Content), "kill yourself") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "kys.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "kys.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "bri'ish") || strings.Contains(strings.ToLower(m.Content), "british") || strings.Contains(strings.ToLower(m.Content), "crisps") || strings.Contains(strings.ToLower(m.Content), "bruv") || strings.Contains(strings.ToLower(m.Content), "innit") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "briish.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "briish.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "ksp") || strings.Contains(strings.ToLower(m.Content), "kerbal") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "ksp.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "ksp.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+	} else if strings.Contains(strings.ToLower(m.Content), "I think therefore") || strings.Contains(strings.ToLower(m.Content), "descartes") || strings.Contains(strings.ToLower(m.Content), "cogito") {
+		if checkBanishedM(m.Author.ID) {
+			return
+		}
+
+		file, _ := os.Open(directory + "descartes.mp4")
+		defer file.Close()
+		reader := discordgo.File{
+			Name:   "descartes.mp4",
+			Reader: file,
+		}
+		messageContent := &discordgo.MessageSend{
+			Files:     []*discordgo.File{&reader},
+			Reference: m.Reference(),
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
 		if checkBanishedM(m.Author.ID) {
 			return
@@ -2629,6 +2986,19 @@ func checkBanished(s *discordgo.Session, i *discordgo.InteractionCreate, ID stri
 	row := db.QueryRow("SELECT EXISTS(SELECT ID FROM Banished WHERE ID=?)", ID)
 	row.Scan(&exists)
 
+	_, err = s.Channel(i.ChannelID)
+	if err != nil && i.Member.User.ID == "942159289836011591" {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Nice try Wello",
+			},
+		})
+		return true
+	}
+
+	// s.ChannelMessageSend("1196943729387372634", i.Member.Nick+" used "+i.ID+" in <#"+i.ChannelID+">")
+
 	if exists {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -2666,7 +3036,9 @@ func execute(s *discordgo.Session, i *discordgo.InteractionCreate, member *disco
 
 	for _, d := range donators {
 		if d.userID == member.User.ID {
-			donators[slices.Index(donators, d)].count = d.count + 1
+			index := slices.Index(donators, d)
+			donators[index].count = d.count + 1
+			donators[index].sacrificed = false
 			d.count++
 			s.ChannelMessageSend(i.ChannelID, "Oh boy! Increasing "+member.User.Mention()+"'s execution count to "+strconv.Itoa(d.count))
 			if !d.sacrificed {

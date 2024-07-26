@@ -1270,12 +1270,38 @@ func addHandlers() {
 		if resultString == "" {
 			resultString = "No results"
 		}
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: resultString,
-			},
-		})
+		if len(resultString) >= 2000 {
+			chunks := make([]string, 0, len(resultString)/2000+1)
+			currentChunk := ""
+			for _, c := range resultString {
+				if len(currentChunk) >= 1999 {
+					chunks = append(chunks, currentChunk)
+					currentChunk = ""
+				}
+				currentChunk += string(c)
+			}
+			if currentChunk != "" {
+				chunks = append(chunks, currentChunk)
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: chunks[0],
+				},
+			})
+			for _, chunk := range chunks[1:] {
+				s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+					Content: chunk,
+				})
+			}
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: resultString,
+				},
+			})
+		}
 	}
 
 	commandHandlers["getplatform"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -1712,27 +1738,6 @@ func addHandlers() {
 		personalShip := ""
 		if len(i.ApplicationCommandData().Options) == 5 {
 			personalShip = i.ApplicationCommandData().Options[4].StringValue()
-		}
-
-		matched, err := regexp.MatchString("^[A-Z]{2}-[0-9]{4}$", titanCallsign)
-		if err != nil {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: err.Error(),
-				},
-			})
-			return
-		}
-
-		if !matched {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "You pathetic excuse for a pilot! Do you not understand the simplest of instructions? A callsign is not some arbitrary collection of letters and numbers you plucked from the depths of your ignorance! It is a representation of your identity, a symbol of honor and respect among warriors, and you have tainted it with your incompetence!\n\nLet me spell it out for your feeble mind: a callsign consists of two letters, followed by a hyphen, and four numbers. For example, BT-7274. It's not rocket science, but apparently, it's beyond your grasp!\n\nDo you even comprehend the significance of a callsign? It's not just a random string of characters; it carries the weight of your reputation, your skills, and your very essence as a Titanfall pilot. But no, you had to mangle it like a child playing with blocks.\n\nNext time, before you dare to disgrace the sacred tradition of callsigns, think twice and show some respect for the art of combat and camaraderie. Your ignorance is not only laughable but also infuriating to those who hold honor and discipline in high regard!",
-				},
-			})
-			return
 		}
 
 		var rankID string
