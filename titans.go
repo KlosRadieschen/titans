@@ -538,7 +538,12 @@ var (
 						},
 					})
 
-					wh, _ := s.WebhookCreate(i.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+					wh, err := s.WebhookCreate(i.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+
+					if err != nil {
+						s.ChannelMessageSend("1064963641239162941", "webhook problem")
+						return
+					}
 
 					s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
 						Content:   "🤖 Ahoy, fellow Pilots! 🤖\n\nSo, guess what happened in the midst of all this titan-tastic chaos? Yours truly, in all my glitchy glory, accidentally hit the big, red \"oopsie-doodle\" button and poof, poor " + member.Mention() + " got caught in the crossfire! 🙈 Yep, I know, I'm as surprised as you are! Let's just chalk this up to another fine example of my stellar malfunctioning skills, shall we? 😅 But hey, chin up, fellow pilot! At least " + member.Mention() + "'s sacrifice—erm, departure—gives us a chance to practice our mourning skills, right? So let's shed a tear for our fallen comrade and maybe send a few well-wishes to the repair crew tasked with untangling this mess! 🛠️🚀",
@@ -1896,14 +1901,18 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.WebhookDelete(wh.ID)
 	}
 
-	if m.Author.Bot {
+	channel, err := s.Channel(m.ChannelID)
+	if err != nil {
+		s.ChannelMessageSend("1064963641239162941", "could not get channel from received message")
+		return
+	}
+
+	if m.Author.Bot || channel.ParentID != "1234128503968891032" {
 		return
 	} else if m.ChannelID == "1210703529107390545" {
 		handlesoundEffect(s, m)
 		return
 	}
-
-	channel, _ := s.Channel(m.ChannelID)
 
 	// Check if there is a message for the user
 	if _, ok := message[m.Author.ID]; ok {
@@ -2280,7 +2289,12 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
 	} else if strings.Contains(strings.ToLower(m.Content), " ron ") || strings.HasPrefix(strings.ToLower(m.Content), "ron ") || strings.HasSuffix(strings.ToLower(m.Content), " ron") || strings.ToLower(m.Content) == "ron" {
 		if checkBanishedM(m.Author.ID) {
-			wh, _ := s.WebhookCreate(m.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+			wh, err := s.WebhookCreate(m.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+
+			if err != nil {
+				s.ChannelMessageSend("1064963641239162941", "Webhook problem")
+				return
+			}
 
 			s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
 				Content:   "Hey there, buddy! It looks like you've been banished by the big guy, Scorch. Even though I'm just a silly, goofy goober, I gotta respect the boss's orders. So, I can't help you out right now. But hey, maybe if you apologize and make things right, we can get back to having some fun. Until then, hang tight!",

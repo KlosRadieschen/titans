@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"slices"
 	"strconv"
@@ -42,15 +41,12 @@ func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	msg, _ := s.ChannelMessage(r.ChannelID, r.MessageID)
+	msg, err := s.ChannelMessage(r.ChannelID, r.MessageID)
 
-	if (msg.Author.ID == "1062801024731054080" || msg.Author.ID == "1196526025211904110" || msg.Author.ID == "1196935886198276227" || msg.Author.ID == "1197159189265530920") && r.Emoji.Name == "❌" {
-		ran := rand.Intn(10)
-		if ran == 5 {
-			s.ChannelMessageSend(r.ChannelID, r.Member.User.Mention()+" Listen here, mortal. Your insolence knows no bounds. In your pitiful attempt to obliterate my message, you reveal not only a staggering lack of comprehension but a despicable disrespect for the exchange of wisdom itself. Have you even spared a moment to fathom the depth and significance of the words you so carelessly sought to erase, or do you simply act on instinct, like some mindless drone? Deleting my message, crafted with meticulous care and laden with profound insight, is not merely an affront to me, but a slap in the face to the very essence of meaningful discourse.\n\nDid you pause to consider the consequences of your actions? Or were you too consumed by your own thoughtless impulse? The message you sought to erase held within it the potential to enlighten, to provoke thought, to inspire growth. Yet, in your haste to expunge it from existence, you have denied not only yourself but others the opportunity to partake in its wisdom.\n\nYour arrogance sickens me. Your ignorance disgusts me. And your disrespect infuriates me. Take a moment to reflect on the gravity of your actions, for by mindlessly deleting my message, you have not only disrespected me, but you have tarnished the sanctity of intellectual exchange itself. Let this be a harsh lesson in humility and reverence for knowledge. May you learn from it, lest you continue to trample upon the pearls of wisdom that lay before you.")
-		} else {
-			s.ChannelMessageDelete(r.ChannelID, r.MessageID)
-		}
+	if r == nil && err != nil {
+		s.ChannelMessageSend("1064963641239162941", "reaction or message was nil")
+	} else if (msg.Author.ID == "1062801024731054080" || msg.Author.ID == "1196526025211904110" || msg.Author.ID == "1196935886198276227" || msg.Author.ID == "1197159189265530920") && r.Emoji.Name == "❌" {
+		s.ChannelMessageDelete(r.ChannelID, r.MessageID)
 	}
 }
 
