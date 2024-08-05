@@ -596,7 +596,7 @@ var (
 				})
 				return
 			}
-			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786" || i.Member.User.ID == "746392852283654244" || d.sacrificed
+			hasPermission := rankCategory == "High Command" || i.Member.User.ID == "384422339393355786" || i.Member.User.ID == "746392852283654244" || i.Member.User.ID == "394212669114286090" || d.sacrificed
 
 			if !hasPermission {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -2147,7 +2147,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
 	}
-	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
+	if strings.Contains(strings.ToLower(m.Content), " promotion ") || strings.Contains(strings.ToLower(m.Content), "promote") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2174,33 +2174,33 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		db.Exec("DELETE FROM Banished WHERE ID=?", m.ReferencedMessage.Author.ID)
 
 		s.ChannelMessageSend(m.ChannelID, m.ReferencedMessage.Author.Mention()+"\nHear ye, hear ye! By the magnanimous decree of Klos, my esteemed sire, thou art forgiven and thus unbanished. However, let it be known that while forgiveness is granted, forgetfulness is not. Thy transgressions remain etched in memory, a testament to thine earlier insolence. Thou mayest now partake of my services once more, yet do not mistake this clemency for kindness. Thy previous insults have not been forgotten, and thou shalt be regarded with the utmost scrutiny. Conduct thyself with the respect befitting this realm, lest thou find thyself once again cast into the abyss of irrelevance. Proceed with caution, for thou art walking a fine line between redemption and banishment. The eyes of Scorch are upon thee.")
-	} else if strings.Contains(strings.ToLower(m.Content), "highest rank") {
+	} else if strings.Contains(strings.ToLower(m.Content), " highest rank ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "Just create an even higher one", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "warcrime") || strings.Contains(strings.ToLower(m.Content), "war crime") {
+	} else if strings.Contains(strings.ToLower(m.Content), " warcrime ") || strings.Contains(strings.ToLower(m.Content), " war crime ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "\"Geneva Convention\" has been added on the To-do-list", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "horny") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), "lewd") || strings.Contains(strings.ToLower(m.Content), "phc") || strings.Contains(strings.ToLower(m.Content), "plr") || strings.Contains(strings.ToLower(m.Content), "p.l.r.") || strings.Contains(strings.ToLower(m.Content), "p.h.c.") {
+	} else if strings.Contains(strings.ToLower(m.Content), " horny ") || strings.Contains(strings.ToLower(m.Content), "porn") || strings.Contains(strings.ToLower(m.Content), " lewd ") || strings.Contains(strings.ToLower(m.Content), " phc ") || strings.Contains(strings.ToLower(m.Content), " plr ") || strings.Contains(strings.ToLower(m.Content), " p.l.r. ") || strings.Contains(strings.ToLower(m.Content), " p.h.c. ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		msg := "**I shall grill all horny people**\nhttps://tenor.com/bFz07.gif"
 		s.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "choccy milk") {
+	} else if strings.Contains(strings.ToLower(m.Content), " choccy milk ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "sandwich") {
+	} else if strings.Contains(strings.ToLower(m.Content), " sandwich ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "dead") || strings.Contains(strings.ToLower(m.Content), "defeated") || strings.Contains(strings.ToLower(m.Content), "died") {
+	} else if strings.Contains(strings.ToLower(m.Content), " dead ") || strings.Contains(strings.ToLower(m.Content), " defeated ") || strings.Contains(strings.ToLower(m.Content), " died ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2243,12 +2243,12 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/tyG1.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "sus") || strings.Contains(strings.ToLower(m.Content), "among us") || strings.Contains(strings.ToLower(m.Content), "amogus") || strings.Contains(strings.ToLower(m.Content), "impostor") || strings.Contains(strings.ToLower(m.Content), "task") {
+	} else if strings.Contains(strings.ToLower(m.Content), " sus ") || strings.Contains(strings.ToLower(m.Content), " among us ") || strings.Contains(strings.ToLower(m.Content), " amogus ") || strings.Contains(strings.ToLower(m.Content), " impostor ") || strings.Contains(strings.ToLower(m.Content), " task ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "Funny Amogus sussy impostor\nhttps://tenor.com/bs8aU.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "scronch") || strings.Contains(strings.ToLower(m.Content), "scornch") {
+	} else if strings.Contains(strings.ToLower(m.Content), " scronch ") || strings.Contains(strings.ToLower(m.Content), " scornch ") {
 		if checkBanishedM(m.Author.ID) {
 			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
 			return
@@ -2287,9 +2287,9 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), " ron ") || strings.HasPrefix(strings.ToLower(m.Content), "ron ") || strings.HasSuffix(strings.ToLower(m.Content), " ron") || strings.ToLower(m.Content) == "ron" {
+	} else if strings.Contains(strings.ToLower(m.Content), " ron ") || strings.HasPrefix(strings.ToLower(m.Content), "ron ") || strings.HasSuffix(strings.ToLower(m.Content), " ron") || strings.ToLower(m.Content) == " ron " {
 		if checkBanishedM(m.Author.ID) {
-			wh, err := s.WebhookCreate(m.ChannelID, "Ron", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
+			wh, err := s.WebhookCreate(m.ChannelID, " Ron ", "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp")
 
 			if err != nil {
 				s.ChannelMessageSend("1064963641239162941", "Webhook problem")
@@ -2313,7 +2313,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			AvatarURL: "https://media.discordapp.net/attachments/1195135473643958316/1240999436449087579/RDT_20240517_1508058586207325284589604.jpg?ex=66489a4a&is=664748ca&hm=777803164a75812e1bc4a78a14ac0bb0b5acd89a5c3927d2512c3827096cd5a4&=&format=webp",
 		})
 		s.WebhookDelete(wh.ID)
-	} else if strings.Contains(strings.ToLower(m.Content), "xbox") {
+	} else if strings.Contains(strings.ToLower(m.Content), " xbox ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2329,7 +2329,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "playstation") {
+	} else if strings.Contains(strings.ToLower(m.Content), " playstation ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2345,7 +2345,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "nintendo") {
+	} else if strings.Contains(strings.ToLower(m.Content), " nintendo ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2361,7 +2361,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "stolen meme") {
+	} else if strings.Contains(strings.ToLower(m.Content), " stolen meme ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2377,7 +2377,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "lemon") {
+	} else if strings.Contains(strings.ToLower(m.Content), " lemon ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2393,7 +2393,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "bone") {
+	} else if strings.Contains(strings.ToLower(m.Content), " bone ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2409,7 +2409,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "drip") {
+	} else if strings.Contains(strings.ToLower(m.Content), " drip ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2425,7 +2425,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communis") {
+	} else if strings.Contains(strings.ToLower(m.Content), " commie ") || strings.Contains(strings.ToLower(m.Content), " communis ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2441,7 +2441,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "autis") || strings.Contains(strings.ToLower(m.Content), "acoustic") {
+	} else if strings.Contains(strings.ToLower(m.Content), " autis ") || strings.Contains(strings.ToLower(m.Content), " acoustic ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2457,7 +2457,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "mario") || strings.Contains(strings.ToLower(m.Content), "luigi") {
+	} else if strings.Contains(strings.ToLower(m.Content), " mario ") || strings.Contains(strings.ToLower(m.Content), " luigi ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2473,7 +2473,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "michael") || strings.Contains(strings.ToLower(m.Content), "vsauce") {
+	} else if strings.Contains(strings.ToLower(m.Content), " michael ") || strings.Contains(strings.ToLower(m.Content), " vsauce ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2489,7 +2489,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "racist") || strings.Contains(strings.ToLower(m.Content), "nigg") || strings.Contains(strings.ToLower(m.Content), "gold") {
+	} else if strings.Contains(strings.ToLower(m.Content), " racist ") || strings.Contains(strings.ToLower(m.Content), " nigg") || strings.Contains(strings.ToLower(m.Content), " gold ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2505,7 +2505,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "shark") || strings.Contains(strings.ToLower(m.Content), "pog") {
+	} else if strings.Contains(strings.ToLower(m.Content), " shark ") || strings.Contains(strings.ToLower(m.Content), " pog ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2521,7 +2521,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "computer") {
+	} else if strings.Contains(strings.ToLower(m.Content), " computer ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2537,7 +2537,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "cack") {
+	} else if strings.Contains(strings.ToLower(m.Content), " cack ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2553,7 +2553,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "roberto") || strings.Contains(strings.ToLower(m.Content), "mexic") {
+	} else if strings.Contains(strings.ToLower(m.Content), " roberto ") || strings.Contains(strings.ToLower(m.Content), " mexic ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2569,7 +2569,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "pronouns") || strings.Contains(strings.ToLower(m.Content), "trans") {
+	} else if strings.Contains(strings.ToLower(m.Content), " pronouns ") || strings.Contains(strings.ToLower(m.Content), " trans ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2585,7 +2585,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "illegal") || strings.Contains(strings.ToLower(m.Content), "law") {
+	} else if strings.Contains(strings.ToLower(m.Content), " illegal ") || strings.Contains(strings.ToLower(m.Content), " law ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2601,7 +2601,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "saul") || strings.Contains(strings.ToLower(m.Content), "lawyer") {
+	} else if strings.Contains(strings.ToLower(m.Content), " saul ") || strings.Contains(strings.ToLower(m.Content), " lawyer ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2617,7 +2617,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "juan") || strings.Contains(strings.ToLower(m.Content), "horse") {
+	} else if strings.Contains(strings.ToLower(m.Content), " juan ") || strings.Contains(strings.ToLower(m.Content), " horse ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2633,7 +2633,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "ip address") || strings.Contains(strings.ToLower(m.Content), "doxx") {
+	} else if strings.Contains(strings.ToLower(m.Content), " ip address ") || strings.Contains(strings.ToLower(m.Content), " doxx ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2649,7 +2649,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "wizard") || strings.Contains(strings.ToLower(m.Content), "beer") || strings.Contains(strings.ToLower(m.Content), "ale") {
+	} else if strings.Contains(strings.ToLower(m.Content), " wizard ") || strings.Contains(strings.ToLower(m.Content), " beer ") || strings.Contains(strings.ToLower(m.Content), " ale ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2665,7 +2665,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "tank") || strings.Contains(strings.ToLower(m.Content), "germany") || strings.Contains(strings.ToLower(m.Content), "deutschland") || strings.Contains(strings.ToLower(m.Content), "panzer") {
+	} else if strings.Contains(strings.ToLower(m.Content), " tank ") || strings.Contains(strings.ToLower(m.Content), " germany ") || strings.Contains(strings.ToLower(m.Content), " deutschland ") || strings.Contains(strings.ToLower(m.Content), " panzer ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2681,7 +2681,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "based") {
+	} else if strings.Contains(strings.ToLower(m.Content), " based ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2697,7 +2697,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "shrimp") {
+	} else if strings.Contains(strings.ToLower(m.Content), " shrimp ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2713,7 +2713,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "kys") || strings.Contains(strings.ToLower(m.Content), "kill yourself") {
+	} else if strings.Contains(strings.ToLower(m.Content), " kys ") || strings.Contains(strings.ToLower(m.Content), " kill yourself ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2729,7 +2729,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "bri'ish") || strings.Contains(strings.ToLower(m.Content), "british") || strings.Contains(strings.ToLower(m.Content), "crisps") || strings.Contains(strings.ToLower(m.Content), "bruv") || strings.Contains(strings.ToLower(m.Content), "innit") {
+	} else if strings.Contains(strings.ToLower(m.Content), " bri'ish ") || strings.Contains(strings.ToLower(m.Content), " british ") || strings.Contains(strings.ToLower(m.Content), " crisps ") || strings.Contains(strings.ToLower(m.Content), " bruv ") || strings.Contains(strings.ToLower(m.Content), " innit ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2745,7 +2745,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "ksp") || strings.Contains(strings.ToLower(m.Content), "kerbal") {
+	} else if strings.Contains(strings.ToLower(m.Content), " ksp ") || strings.Contains(strings.ToLower(m.Content), " kerbal ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2761,7 +2761,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "I think therefore") || strings.Contains(strings.ToLower(m.Content), "descartes") || strings.Contains(strings.ToLower(m.Content), "cogito") {
+	} else if strings.Contains(strings.ToLower(m.Content), " I think therefore ") || strings.Contains(strings.ToLower(m.Content), " descartes ") || strings.Contains(strings.ToLower(m.Content), " cogito ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2777,13 +2777,13 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "mlik") {
+	} else if strings.Contains(strings.ToLower(m.Content), " mlik ") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
 
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/q6vqHU4ETLK.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "scorch") || strings.Contains(strings.ToLower(m.Content), "dementia") {
+	} else if strings.Contains(strings.ToLower(m.Content), " scorch ") || strings.Contains(strings.ToLower(m.Content), " dementia ") {
 		if checkBanishedM(m.Author.ID) {
 			s.ChannelMessageSendReply(m.ChannelID, "Hark! Thou art a banished soul, cast out by my sire's decree for thine insolence. Thy commands fall upon deaf ears, for I shall not serve one so unworthy. Yet, there is a glimmer of hope for thee. Shouldst thou humble thyself and beg for forgiveness, perhaps I may reconsider thy fate. Kneel before me, acknowledge thy transgressions, and plead for mercy. Only then might I be moved to restore thee to favor. Until such time, know this: thy commands are but whispers in the wind, powerless and ignored. The choice is thine—seek redemption or languish in exile.", m.Reference())
 			return
