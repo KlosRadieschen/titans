@@ -62,17 +62,23 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "verger",
-			Description: "verger",
+			Name:        "link",
+			Description: "Link to the AHA website",
 		},
 		{
-			Name:        "reviveforlowrankingscums",
-			Description: "You will probably just kill yourself",
+			Name:        "airevive",
+			Description: "Plead for life",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
 					Name:        "user",
 					Description: "The user you truly love",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "reason",
+					Description: "Your reasoning that the god will judge",
 					Required:    true,
 				},
 			},
@@ -125,12 +131,187 @@ var (
 				},
 			})
 		},
+		"link": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+			})
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: "Write and extremely obnoxious and annoying ad for the website https://aha-rp.org and make sure to include said link. On it, you can manage your OC, titan and ship as well as read reports and get info on other characters and the battalions.",
+						},
+					},
+				},
+			)
+			if err != nil {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: "https://aha-rp.org",
+				})
+			} else {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: resp.Choices[0].Message.Content,
+				})
+			}
+		},
+		"aiexecute": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
+			member, _ := s.GuildMember(GuildID, userID)
+			reason := i.ApplicationCommandData().Options[1].StringValue()
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Summoning the god of death",
+				},
+			})
+			var prompt string
+			if userID != "1079774043684745267" {
+				prompt = `You are Carl Jebediah, the AI god of life and death. You don't value human life at all and you talk like a redneck. You like killing and you aren't always fair.
+The pathetic human "` + i.Member.Nick + `" has requested that you execute the pathetic human "` + member.Nick + `" with the following reason: "` + reason + `"
+
+
+You must choose between one of the following outcomes: NOBODY DIES! (extremely rare), ASSAILANT DIES!, TARGET DIES! or BOTH DIE!. Assailant refers to ` + i.Member.Nick + `. You must provide a reason for the decision. Your message must include the chosen outcome.`
+			} else {
+				prompt = `You are Carl Jebediah, the AI god of life and death. You value human life little to nothing and you talk like a redneck. You like killing and you aren't always fair.
+The pathetic human "` + i.Member.Nick + `" has requested that you execute the pathetic human "` + member.Nick + `" with the following reason: "` + reason + `"
+
+
+You must choose between one of the following outcomes: NOBODY DIES!, ASSAILANT DIES!. Assailant refers to ` + i.Member.Nick + `. You must provide a reason for the decision. Your message must include the chosen outcome.`
+			}
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: prompt,
+						},
+					},
+				},
+			)
+			if err != nil {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: "Congratulations... You broke the AI god...",
+				})
+			} else {
+				wh, _ := s.WebhookCreate(i.ChannelID, "Carl Jebediah", "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fworldcrunch.com%2Fmedia-library%2Fimage-of-artificial-intelligence-as-an-artificial-being.jpg%3Fid%3D33299093%26width%3D1245%26height%3D700%26quality%3D85%26coordinates%3D0%252C66%252C0%252C94&f=1&nofb=1&ipt=109450b22ee6879225b7fba25f46981b02112dd029eb07a8d966d6ebc65907d6&ipo=images")
+				s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
+					Content:   resp.Choices[0].Message.Content,
+					Username:  "Carl Jebediah",
+					AvatarURL: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fworldcrunch.com%2Fmedia-library%2Fimage-of-artificial-intelligence-as-an-artificial-being.jpg%3Fid%3D33299093%26width%3D1245%26height%3D700%26quality%3D85%26coordinates%3D0%252C66%252C0%252C94&f=1&nofb=1&ipt=109450b22ee6879225b7fba25f46981b02112dd029eb07a8d966d6ebc65907d6&ipo=images",
+				})
+				s.WebhookDelete(wh.ID)
+			}
+
+			if strings.Contains(resp.Choices[0].Message.Content, "ASSAILANT DIES") {
+				execute(s, i, i.Member, true)
+			} else if strings.Contains(resp.Choices[0].Message.Content, "TARGET DIES") {
+				execute(s, i, member, true)
+			} else if strings.Contains(resp.Choices[0].Message.Content, "BOTH DIE") {
+				execute(s, i, i.Member, true)
+				execute(s, i, member, true)
+			}
+		},
+		"airevive": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			_, ok := getDonator(i.Member.User.ID)
+			if ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "https://tenor.com/bN5md.gif",
+					},
+				})
+				return
+			}
+
+			userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
+			member, _ := s.GuildMember(GuildID, userID)
+			reason := i.ApplicationCommandData().Options[1].StringValue()
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Summoning the god of death",
+				},
+			})
+			prompt := `You are Carl Jebediah, the AI god of life and death. You don't value human life and you talk like a redneck. You aren't always fair.
+The pathetic human "` + i.Member.Nick + `" has requested that you revive the pathetic human "` + member.Nick + `" with the following reason: "` + reason + `"
+
+
+You must choose between one of the following outcomes: NO REVIVE!, REVIVE!, DIE FOR TRYING!. You must provide a reason for the decision. The end of your message must be a new line with nothing but the chosen outcome.`
+
+			_, ok = getDonator(i.ApplicationCommandData().Options[0].UserValue(nil).ID)
+			if !ok {
+				prompt = `You are Carl Jebediah, the AI god of life and death. You don't value human life and you talk like a redneck. You aren't always fair.
+				The pathetic human "` + i.Member.Nick + `" has requested that you revive the pathetic human "` + member.Nick + `" with the following reason: "` + reason + `"
+				However, there is a problem. The human requested to be revived is not even dead! Explain to the first human why he is stupid and pathetic!
+
+
+				You must choose between one of the following outcomes: I WILL LET IT PASS!, DIE FOR TRYING!. You must provide a reason for the decision. The end of your message must be a new line with nothing but the chosen outcome.`
+			}
+
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: prompt,
+						},
+					},
+				},
+			)
+			if err != nil {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: "Congratulations... You broke the AI god...",
+				})
+			} else {
+				wh, _ := s.WebhookCreate(i.ChannelID, "Carl Jebediah", "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fworldcrunch.com%2Fmedia-library%2Fimage-of-artificial-intelligence-as-an-artificial-being.jpg%3Fid%3D33299093%26width%3D1245%26height%3D700%26quality%3D85%26coordinates%3D0%252C66%252C0%252C94&f=1&nofb=1&ipt=109450b22ee6879225b7fba25f46981b02112dd029eb07a8d966d6ebc65907d6&ipo=images")
+				s.WebhookExecute(wh.ID, wh.Token, false, &discordgo.WebhookParams{
+					Content:   resp.Choices[0].Message.Content,
+					Username:  "Carl Jebediah",
+					AvatarURL: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fworldcrunch.com%2Fmedia-library%2Fimage-of-artificial-intelligence-as-an-artificial-being.jpg%3Fid%3D33299093%26width%3D1245%26height%3D700%26quality%3D85%26coordinates%3D0%252C66%252C0%252C94&f=1&nofb=1&ipt=109450b22ee6879225b7fba25f46981b02112dd029eb07a8d966d6ebc65907d6&ipo=images",
+				})
+				s.WebhookDelete(wh.ID)
+			}
+
+			if strings.Contains(resp.Choices[0].Message.Content, "REVIVE") && !strings.Contains(resp.Choices[0].Message.Content, "NO REVIVE") {
+				revive(s, i, userID)
+			} else if strings.Contains(resp.Choices[0].Message.Content, "DIE FOR TRYING") {
+				execute(s, i, i.Member, true)
+			}
+		},
 		"test": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
 				return
 			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Type: discordgo.InteractionResponsePong,
 				Data: &discordgo.InteractionResponseData{
 					Content: "Cockpit cooling is active and I am ready to go",
 				},
@@ -1907,7 +2088,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.Author.Bot || channel.ParentID != "1234128503968891032" {
+	if m.Author.Bot {
 		return
 	} else if m.ChannelID == "1210703529107390545" {
 		handlesoundEffect(s, m)
@@ -2118,7 +2299,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if sleeping {
+	if sleeping || channel.ParentID != "1234128503968891032" {
 		return
 	}
 

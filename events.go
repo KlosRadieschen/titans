@@ -43,7 +43,7 @@ func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 
 	msg, err := s.ChannelMessage(r.ChannelID, r.MessageID)
 
-	if r == nil && err != nil {
+	if r == nil || err != nil {
 		s.ChannelMessageSend("1064963641239162941", "reaction or message was nil")
 	} else if (msg.Author.ID == "1062801024731054080" || msg.Author.ID == "1196526025211904110" || msg.Author.ID == "1196935886198276227" || msg.Author.ID == "1197159189265530920") && r.Emoji.Name == "❌" {
 		s.ChannelMessageDelete(r.ChannelID, r.MessageID)
@@ -51,7 +51,7 @@ func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 }
 
 func guildMemberAdd(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
-	s.ChannelMessageSend("1195135473643958316", m.Mention()+", welcome to the AHA discord server. Here is some useful information to get you started.\nThe AHA, or Anti-Horny Alliance, is a faction dedicated to the extermination of the horny. Our enemies include the PHC (Pro-Horny Coalition), which we defeated in what is referred to as the first war, and the PLR (Pro-Lewd Rebellion), which is a remnant of the PHC. We are divided in four different battalions, lead by the highest ranking members.\n**Additional info about the server:**\n- Don't invite anyone unless you have approval from the General\n- ***NEVER*** post about the AHA on r/titanfall\n- Commissars are outside the normal ranking system and have the ability to execute (mute) members if they misbehave. They only report directly to the General\n- We have 4 titan AIs as bots, but Scorch is the main one. To see what he can do, type / and click on his icon (some commands might even be useful). You can also write to any of them in the titan AI channel by mentioning their name in your message.\n- You will hear the term \"simulacrum\" a lot. Simulacrums are robot bodies with a human mind inside of them.")
+	s.ChannelMessageSend("1195135473643958316", m.Mention()+", welcome to the AHA discord server. You can check out the wiki (https://aha-rp.org/wiki/browse) or tslk with the members to get started")
 	s.GuildMemberRoleAdd(GuildID, m.User.ID, "1195136604373782658")
 }
 
