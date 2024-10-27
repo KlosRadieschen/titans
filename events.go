@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"slices"
 	"strconv"
@@ -19,6 +21,21 @@ var (
 )
 
 func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var exists bool
+	row := db.QueryRow("SELECT EXISTS(SELECT ID FROM Banished WHERE ID=?)", r.Member.User.ID)
+	row.Scan(&exists)
+
+	if exists {
+		return
+	}
+
 	if r.MessageID == "1249785657589629081" {
 		member, _ := s.GuildMember("1195135473006420048", r.UserID)
 		roles := member.Roles
@@ -51,11 +68,16 @@ func reactReceived(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 }
 
 func guildMemberAdd(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
-	s.ChannelMessageSend("1195135473643958316", m.Mention()+", welcome to the AHA discord server. You can check out the wiki (https://aha-rp.org/wiki/browse) or tslk with the members to get started")
-	s.GuildMemberRoleAdd(GuildID, m.User.ID, "1195136604373782658")
+	if checkAndRestorePilot(m.User.ID) {
+		s.ChannelMessageSend("1195138774481522729", m.Mention()+", so you come crawling back you sack of shit. How long will you stay this time? (Your pilot has been restored)")
+	} else {
+		s.ChannelMessageSend("1195138774481522729", m.Mention()+", welcome to the AHA discord server. You can check out the wiki (https://aha-rp.org/wiki/browse) or tslk with the members to get started")
+	}
+	s.GuildMemberRoleAdd(GuildID, m.User.ID, "1296540658131140650")
 }
 
 func guildMemberRemove(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
+	movePilotToGraveyard(m.User.ID)
 	s.ChannelMessageSend("1195135473643958316", m.User.Username+" left the server")
 }
 
@@ -100,5 +122,11 @@ func handlesoundEffect(s *discordgo.Session, m *discordgo.MessageCreate) {
 			con.Disconnect()
 			con = nil
 		}
+	}
+}
+
+func messageReceivedBics(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.ChannelID == "1246138097129754697" {
+		s.ChannelMessageSend("753535223798562889", m.Content)
 	}
 }

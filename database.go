@@ -1,18 +1,19 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"math"
 	"math/rand"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/sashabaranov/go-openai"
 	"github.com/tkuchiki/go-timezone"
 )
 
@@ -1416,7 +1417,13 @@ func addHandlers() {
 				return
 			}
 			member, _ := s.State.Member(i.GuildID, id)
-			resultString += fmt.Sprintf("# REPORT #%v: %v\n## Written by %v\n\n%v", numberString, name, member.Nick, description)
+			var nick string
+			if member.Nick == "" {
+				nick = "Probably Saturn"
+			} else {
+				nick = member.Nick
+			}
+			resultString += fmt.Sprintf("# REPORT #%v: %v\n## Written by %v\n\n%v", numberString, name, nick, description)
 		}
 		if resultString == "" {
 			resultString = "No results"
@@ -1812,6 +1819,7 @@ func addHandlers() {
 			})
 			return
 		}
+
 		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
@@ -1819,7 +1827,49 @@ func addHandlers() {
 		}
 		defer db.Close()
 
-		// Insert data into the table
+		// Check if the pilot already has a Titan
+		var existingTitan sql.NullString
+		err = db.QueryRow("SELECT fk_titan_pilots FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingTitan)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Error checking pilot Titan assignment: " + err.Error(),
+				},
+			})
+			return
+		}
+
+		if existingTitan.Valid && existingTitan.String != "" {
+			// If the pilot already has a Titan
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+			})
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: "You are the titan Scorch from Titanfall 2 and you manage the AHA database. Some foolish human just tried to register a new titan for themselves even though they already have one. Write a long insulting message explaining that they can only have one titan.",
+						},
+					},
+				},
+			)
+			if err != nil {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: "You already have a titan assigned! You cannot register another one.",
+				})
+			} else {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: resp.Choices[0].Message.Content,
+				})
+			}
+			return
+		}
+
+		// Proceed with inserting the Titan data into the table
 		stmt, err := db.Prepare("INSERT INTO Titan VALUES(?, ?, ?, ?, ?)")
 		if err != nil {
 			fmt.Println(err)
@@ -1832,36 +1882,16 @@ func addHandlers() {
 			fmt.Println(err)
 			return
 		}
-		defer stmt.Close()
+		defer stmt2.Close()
 
-		// Execute the prepared statement with actual values
+		// Get the input data
 		callsign := i.ApplicationCommandData().Options[0].StringValue()
 		name := i.ApplicationCommandData().Options[1].StringValue()
 		class := i.ApplicationCommandData().Options[2].StringValue()
 		weapons := i.ApplicationCommandData().Options[3].StringValue()
 		abilities := i.ApplicationCommandData().Options[4].StringValue()
 
-		matched, err := regexp.MatchString("^[A-Z]{2}-[0-9]{4}$", callsign)
-		if err != nil {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: err.Error(),
-				},
-			})
-			return
-		}
-
-		if !matched {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "You pathetic excuse for a pilot! Do you not understand the simplest of instructions? A callsign is not some arbitrary collection of letters and numbers you plucked from the depths of your ignorance! It is a representation of your identity, a symbol of honor and respect among warriors, and you have tainted it with your incompetence!\n\nLet me spell it out for your feeble mind: a callsign consists of two letters, followed by a hyphen, and four numbers. For example, BT-7274. It's not rocket science, but apparently, it's beyond your grasp!\n\nDo you even comprehend the significance of a callsign? It's not just a random string of characters; it carries the weight of your reputation, your skills, and your very essence as a Titanfall pilot. But no, you had to mangle it like a child playing with blocks.\n\nNext time, before you dare to disgrace the sacred tradition of callsigns, think twice and show some respect for the art of combat and camaraderie. Your ignorance is not only laughable but also infuriating to those who hold honor and discipline in high regard!",
-				},
-			})
-			return
-		}
-
+		// Insert the new Titan record
 		_, err = stmt.Exec(&callsign, &name, &class, &weapons, &abilities)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1873,6 +1903,7 @@ func addHandlers() {
 			return
 		}
 
+		// Update the pilot's fk_titan_pilots field
 		_, err = stmt2.Exec(&callsign, i.Member.User.ID)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -1887,7 +1918,7 @@ func addHandlers() {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Successfully registered",
+				Content: "Successfully registered Titan!",
 			},
 		})
 	}
@@ -1907,6 +1938,7 @@ func addHandlers() {
 			})
 			return
 		}
+
 		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 		db, err := sql.Open("mysql", dsn)
 		if err != nil {
@@ -1914,7 +1946,49 @@ func addHandlers() {
 		}
 		defer db.Close()
 
-		// Insert data into the table
+		// Check if the pilot already has a personal ship
+		var existingShip sql.NullString
+		err = db.QueryRow("SELECT fk_personalship_possesses FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingShip)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Error checking pilot ship assignment: " + err.Error(),
+				},
+			})
+			return
+		}
+
+		if existingShip.Valid && existingShip.String != "" {
+			// If the pilot already has a personal ship
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+			})
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model: openai.GPT3Dot5Turbo,
+					Messages: []openai.ChatCompletionMessage{
+						{
+							Role:    openai.ChatMessageRoleUser,
+							Content: "You are the titan Scorch from Titanfall 2 and you manage the AHA database. Some foolish human just tried to register a new titan for themselves even though they already have one. Write a long insulting message explaining that they can only have one titan.",
+						},
+					},
+				},
+			)
+			if err != nil {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: "You already have a ship assigned! You cannot register another one.",
+				})
+			} else {
+				s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Content: resp.Choices[0].Message.Content,
+				})
+			}
+			return
+		}
+
+		// Proceed with inserting the personal ship data into the table
 		stmt, err := db.Prepare("INSERT INTO PersonalShip VALUES(?, ?, ?, ?)")
 		if err != nil {
 			fmt.Println(err)
@@ -1927,40 +2001,43 @@ func addHandlers() {
 			fmt.Println(err)
 			return
 		}
-		defer stmt.Close()
+		defer stmt2.Close()
 
-		// Execute the prepared statement with actual values
+		// Get the input data from the interaction
 		name := i.ApplicationCommandData().Options[0].StringValue()
 		class := i.ApplicationCommandData().Options[1].StringValue()
-		description := i.ApplicationCommandData().Options[3].StringValue()
-		titanCapacity := i.ApplicationCommandData().Options[2].StringValue()
+		description := i.ApplicationCommandData().Options[2].StringValue()
+		titanCapacity := i.ApplicationCommandData().Options[3].StringValue()
 
+		// Insert the new personal ship record
 		_, err = stmt.Exec(&name, &class, &description, &titanCapacity)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: err.Error(),
+					Content: "Error inserting personal ship: " + err.Error(),
 				},
 			})
 			return
 		}
 
+		// Update the pilot's fk_personalship_possesses field
 		_, err = stmt2.Exec(&name, i.Member.User.ID)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: err.Error(),
+					Content: "Error updating pilot record with personal ship: " + err.Error(),
 				},
 			})
 			return
 		}
 
+		// Respond with success message
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Successfully registered",
+				Content: "Successfully registered your personal ship!",
 			},
 		})
 	}
@@ -2932,4 +3009,63 @@ func addHandlers() {
 			},
 		})
 	}
+}
+
+func movePilotToGraveyard(ID string) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("INSERT INTO Graveyard SELECT * FROM Pilot where pk_userID=?")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer stmt.Close()
+
+	stmt.Exec(&ID)
+
+	stmt, err = db.Prepare("DELETE FROM Pilot WHERE pk_userID=?")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer stmt.Close()
+
+	stmt.Exec(&ID)
+}
+
+func checkAndRestorePilot(ID string) bool {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("INSERT INTO Pilot SELECT * FROM Graveyard where pk_userID=?")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	defer stmt.Close()
+
+	result, _ := stmt.Exec(&ID)
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return false
+	}
+
+	stmt, err = db.Prepare("DELETE FROM Graveyard WHERE pk_userID=?")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	defer stmt.Close()
+
+	stmt.Exec(&ID)
+	return true
 }

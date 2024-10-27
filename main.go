@@ -24,15 +24,19 @@ import (
 )
 
 var (
-	session         *discordgo.Session
-	personalities   []Personality
-	awaitUsers      []string
-	awaitUsersDec   []string
-	missionUsers    []string
-	missionChannels []string
-	donators        []Donator
-	impersonators   []Impersonator
-	welloMessage    string
+	session             *discordgo.Session
+	sessionBics         *discordgo.Session
+	personalities       []Personality
+	awaitUsers          []string
+	awaitUsersDec       []string
+	missionUsers        []string
+	missionChannels     []string
+	donators            []Donator
+	impersonators       []Impersonator
+	welloMessage        string
+	tupperCheck         TupperCheck
+	commandHandlersBics map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	inter               discordgo.Interaction
 )
 
 var (
@@ -62,8 +66,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "link",
-			Description: "Link to the AHA website",
+			Name:        "newstuff",
+			Description: "It's stuff and it's new",
 		},
 		{
 			Name:        "airevive",
@@ -85,7 +89,140 @@ var (
 		},
 	}
 
+	commandsBics = []*discordgo.ApplicationCommand{
+		{
+			Name:        "socialcredit",
+			Description: "Increase or decrease the social credit of a user",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user (duh)",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "amount",
+					Description: "The amount of social credit (can be negative to decrease)",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "showsocialcredit",
+			Description: "Show the social credit of a user",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user (duh)",
+					Required:    true,
+				},
+			},
+		},
+	}
+
+	componentsHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"shipselect": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var edit discordgo.WebhookEdit
+			if i.MessageComponentData().Values[0] == "annapolis" {
+				text := "This is the description for the Annapolis Class"
+				edit = discordgo.WebhookEdit{
+					Components: &[]discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.SelectMenu{
+									CustomID: "shipselect",
+									Options: []discordgo.SelectMenuOption{
+										{
+											Label:       "Annapolis Class",
+											Value:       "annapolis",
+											Description: "Show the Annapolis Class",
+											Default:     true,
+										},
+										{
+											Label:       "Leviathan Class",
+											Value:       "leviathan",
+											Description: "Show the Leviathan Class",
+										},
+									},
+								},
+							},
+						},
+					},
+					Content: &text,
+				}
+			} else {
+				text := "This is the description for the Leviathan Class"
+				edit = discordgo.WebhookEdit{
+					Components: &[]discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.SelectMenu{
+									CustomID: "shipselect",
+									Options: []discordgo.SelectMenuOption{
+										{
+											Label:       "Annapolis Class",
+											Value:       "annapolis",
+											Description: "Show the Annapolis Class",
+										},
+										{
+											Label:       "Leviathan Class",
+											Value:       "leviathan",
+											Description: "Show the Leviathan Class",
+											Default:     true,
+										},
+									},
+								},
+							},
+						},
+					},
+					Content: &text,
+				}
+			}
+
+			s.InteractionResponseEdit(&inter, &edit)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+			})
+		},
+	}
+
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"newstuff": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			response := discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.SelectMenu{
+									CustomID: "shipselect",
+									Options: []discordgo.SelectMenuOption{
+										{
+											Label:       "Annapolis Class",
+											Value:       "annapolis",
+											Description: "Show the Annapolis Class",
+											Default:     true,
+										},
+										{
+											Label:       "Leviathan Class",
+											Value:       "leviathan",
+											Description: "Show the Leviathan Class",
+										},
+									},
+								},
+							},
+						},
+					},
+					Content: "This is the description for the Annapolis Class",
+				},
+			}
+
+			inter = *i.Interaction
+			s.InteractionRespond(i.Interaction, &response)
+		},
+
 		"verger": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
 				return
@@ -2006,6 +2143,10 @@ type Impersonator struct {
 	dmID      string
 	isScorch  bool
 }
+type TupperCheck struct {
+	startTime time.Time
+	channel   string
+}
 
 func main() {
 	var err error
@@ -2013,9 +2154,25 @@ func main() {
 	addHandlers()
 
 	session, _ = discordgo.New("Bot " + scorchToken)
+	sessionBics, _ = discordgo.New("Bot " + bicsToken)
 
-	session.AddHandler(func(session *discordgo.Session, i *discordgo.InteractionCreate) {
-		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		switch i.Type {
+		case discordgo.InteractionApplicationCommand:
+			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+				h(s, i)
+			}
+		case discordgo.InteractionMessageComponent:
+			if h, ok := componentsHandlers[i.MessageComponentData().CustomID]; ok {
+				h(s, i)
+			}
+		}
+	})
+
+	commandHandlersBics = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
+	addBicsHandlers()
+	sessionBics.AddHandler(func(session *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlersBics[i.ApplicationCommandData().Name]; ok {
 			h(session, i)
 		}
 	})
@@ -2024,8 +2181,10 @@ func main() {
 	session.AddHandler(guildMemberRemove)
 	session.AddHandler(messageReceived)
 	session.AddHandler(reactReceived)
+	sessionBics.AddHandler(messageReceivedBics)
 
 	session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAll)
+	sessionBics.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAll)
 
 	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		fmt.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
@@ -2036,11 +2195,21 @@ func main() {
 		panic("Couldnt open session")
 	}
 
+	sessionBics.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		fmt.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+		fmt.Println()
+	})
+	err = sessionBics.Open()
+	if err != nil {
+		panic(err)
+	}
+
 	session.ChannelMessageSend("1064963641239162941", "Code: "+code)
 	session.UpdateListeningStatus("the screams of burning PHC pilots")
 
+	sessionBics.UpdateListeningStatus("Red Sun in the Sky")
+
 	fmt.Println("Adding commands...")
-	session.ApplicationCommandDelete("1062801024731054080", "1195135473006420048", "1197179819289497651")
 
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
 	for i, v := range commands {
@@ -2051,6 +2220,15 @@ func main() {
 		registeredCommands[i] = cmd
 	}
 
+	registeredCommandsBics := make([]*discordgo.ApplicationCommand, len(commandsBics))
+	for i, v := range commandsBics {
+		cmd, err := sessionBics.ApplicationCommandCreate(sessionBics.State.User.ID, "753535223798562886", v)
+		if err != nil {
+			panic("Couldnt create a command: " + err.Error())
+		}
+		registeredCommandsBics[i] = cmd
+	}
+
 	fmt.Println("Commands added!")
 
 	<-make(chan struct{})
@@ -2059,6 +2237,19 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
+	_, ok := getDonator(m.Author.ID)
+
+	if ok {
+		tupperCheck = TupperCheck{
+			startTime: time.Now(),
+			channel:   m.ChannelID,
+		}
+	}
+
+	if time.Since(tupperCheck.startTime).Milliseconds() < 500 && m.WebhookID != "" && m.ChannelID == tupperCheck.channel {
+		s.ChannelMessageDelete(m.ChannelID, m.ID)
+	}
+
 	if m.Author.ID == "942159289836011591" {
 		welloMessage = m.Content
 	}
@@ -2104,7 +2295,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// handle Scorch specific messages
-	_, ok := getDonator(m.Author.ID)
 	if channel.Type == discordgo.ChannelTypeDM {
 		if slices.Contains(awaitUsersDec, m.Author.ID) {
 			if m.Content == code {
@@ -2327,8 +2517,8 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			s.ChannelMessageSendReply(m.ChannelID, resp.Choices[0].Message.Content, ref)
 		}
-	}
-	if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
+
+	} else if strings.Contains(strings.ToLower(m.Content), "promotion") || strings.Contains(strings.ToLower(m.Content), "promote") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
