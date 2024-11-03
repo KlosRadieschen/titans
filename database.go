@@ -86,7 +86,6 @@ func addHandlers() {
 		}
 		defer db.Close()
 
-		//
 		stmt, err := db.Prepare("SELECT pk_userID, specialisation, fk_battalion_isPartOf FROM Pilot ORDER BY fk_battalion_isPartOf")
 		if err != nil {
 			log.Fatal(err)
@@ -1402,11 +1401,11 @@ func addHandlers() {
 		defer rows.Close()
 
 		// Sends the results
-		var resultString string
+		var name string
+		var id string
+		var description string
+		var nick string
 		for rows.Next() {
-			var name string
-			var id string
-			var description string
 			if err := rows.Scan(&name, &id, &description); err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1417,47 +1416,46 @@ func addHandlers() {
 				return
 			}
 			member, _ := s.State.Member(i.GuildID, id)
-			var nick string
 			if member.Nick == "" {
 				nick = "Probably Saturn"
 			} else {
 				nick = member.Nick
 			}
-			resultString += fmt.Sprintf("# REPORT #%v: %v\n## Written by %v\n\n%v", numberString, name, nick, description)
 		}
-		if resultString == "" {
-			resultString = "No results"
-		}
-
-		if len(resultString) >= 2000 {
-			chunks := make([]string, 0, len(resultString)/2000+1)
-			currentChunk := ""
-			for _, c := range resultString {
-				if len(currentChunk) >= 1999 {
-					chunks = append(chunks, currentChunk)
-					currentChunk = ""
-				}
-				currentChunk += string(c)
-			}
-			if currentChunk != "" {
-				chunks = append(chunks, currentChunk)
-			}
+		if name == "" {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: chunks[0],
+					Content: "No results",
 				},
 			})
-			for _, chunk := range chunks[1:] {
-				s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-					Content: chunk,
-				})
-			}
-		} else {
+			return
+		}
+
+		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{
+					{
+						Title: name,
+						Author: &discordgo.MessageEmbedAuthor{
+							Name:    nick,
+							URL:     "https://aha-rp.org/get/pilots/" + strings.ReplaceAll(nick, " ", ""),
+							IconURL: "https://aha-rp.org/static/assets/avatars/" + id + ".png",
+						},
+						Color:       16738740,
+						URL:         fmt.Sprintf("https://aha-rp.org/get/reports/%v", i.ApplicationCommandData().Options[0].IntValue()),
+						Description: description,
+					},
+				},
+			},
+		})
+
+		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: resultString,
+					Content: fmt.Sprintf("Fuck you, the report is too long. Go read it here: https://aha-rp.org/get/reports/%v", i.ApplicationCommandData().Options[0].IntValue()),
 				},
 			})
 		}
@@ -1529,7 +1527,6 @@ func addHandlers() {
 		}
 		defer db.Close()
 
-		//
 		stmt, err := db.Prepare("SELECT value FROM Timezone WHERE pk_pilot_isIn=?")
 		if err != nil {
 			log.Fatal(err)

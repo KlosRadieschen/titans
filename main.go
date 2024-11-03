@@ -66,8 +66,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "newstuff",
-			Description: "It's stuff and it's new",
+			Name:        "register",
+			Description: "Register a new character into the database",
 		},
 		{
 			Name:        "airevive",
