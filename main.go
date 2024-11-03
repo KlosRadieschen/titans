@@ -2791,7 +2791,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communist") {
+	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communis") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2900,7 +2900,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			sacrificed: false,
 			revivable:  true,
 		})
-	} else if strings.Contains(strings.ToLower(m.Content), "shark") || strings.Contains(strings.ToLower(m.Content), "pog") {
+	} else if strings.Contains(strings.ToLower(m.Content), "shark") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2909,22 +2909,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		defer file.Close()
 		reader := discordgo.File{
 			Name:   "pog.mp4",
-			Reader: file,
-		}
-		messageContent := &discordgo.MessageSend{
-			Files:     []*discordgo.File{&reader},
-			Reference: m.Reference(),
-		}
-		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "computer") {
-		if checkBanishedM(m.Author.ID) {
-			return
-		}
-
-		file, _ := os.Open(directory + "pc.mp4")
-		defer file.Close()
-		reader := discordgo.File{
-			Name:   "pc.mp4",
 			Reader: file,
 		}
 		messageContent := &discordgo.MessageSend{
@@ -2964,7 +2948,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "pronouns") || strings.Contains(strings.ToLower(m.Content), "trans") {
+	} else if strings.Contains(strings.ToLower(m.Content), "pronouns") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2980,7 +2964,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "illegal") || strings.Contains(strings.ToLower(m.Content), "law") {
+	} else if strings.Contains(strings.ToLower(m.Content), "illegal") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2996,7 +2980,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "saul") || strings.Contains(strings.ToLower(m.Content), "lawyer") {
+	} else if strings.Contains(strings.ToLower(m.Content), "saul") || strings.Contains(strings.ToLower(m.Content), "goodman") || strings.Contains(strings.ToLower(m.Content), "lawyer") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -3012,7 +2996,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "juan") || strings.Contains(strings.ToLower(m.Content), "horse") {
+	} else if strings.Contains(strings.ToLower(m.Content), "juan") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -3044,7 +3028,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "wizard") || strings.Contains(strings.ToLower(m.Content), "beer") || strings.Contains(strings.ToLower(m.Content), "ale") {
+	} else if strings.Contains(strings.ToLower(m.Content), "wizard") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -3060,7 +3044,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "tank") || strings.Contains(strings.ToLower(m.Content), "germany") || strings.Contains(strings.ToLower(m.Content), "deutschland") || strings.Contains(strings.ToLower(m.Content), "panzer") {
+	} else if strings.Contains(strings.ToLower(m.Content), " tank ") || strings.Contains(strings.ToLower(m.Content), "germany") || strings.Contains(strings.ToLower(m.Content), "deutschland") || strings.Contains(strings.ToLower(m.Content), "panzer") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -3069,22 +3053,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		defer file.Close()
 		reader := discordgo.File{
 			Name:   "panzer.mp4",
-			Reader: file,
-		}
-		messageContent := &discordgo.MessageSend{
-			Files:     []*discordgo.File{&reader},
-			Reference: m.Reference(),
-		}
-		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "based") {
-		if checkBanishedM(m.Author.ID) {
-			return
-		}
-
-		file, _ := os.Open(directory + "based.mp4")
-		defer file.Close()
-		reader := discordgo.File{
-			Name:   "based.mp4",
 			Reader: file,
 		}
 		messageContent := &discordgo.MessageSend{
