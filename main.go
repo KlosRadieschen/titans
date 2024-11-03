@@ -2566,11 +2566,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "Pilot, I have acquired the choccy milk!", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "sandwich") {
-		if checkBanishedM(m.Author.ID) {
-			return
-		}
-		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/boRE2.gif", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "dead") || strings.Contains(strings.ToLower(m.Content), "defeated") || strings.Contains(strings.ToLower(m.Content), "died") {
 		if checkBanishedM(m.Author.ID) {
 			return
@@ -2614,7 +2609,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "https://tenor.com/tyG1.gif", m.Reference())
-	} else if strings.Contains(strings.ToLower(m.Content), "sus") || strings.Contains(strings.ToLower(m.Content), "among us") || strings.Contains(strings.ToLower(m.Content), "amogus") || strings.Contains(strings.ToLower(m.Content), "impostor") || strings.Contains(strings.ToLower(m.Content), "task") {
+	} else if strings.ToLower(m.Content) == "sus" || strings.Contains(strings.ToLower(m.Content), " sus ") || strings.Contains(strings.ToLower(m.Content), "among us") || strings.Contains(strings.ToLower(m.Content), "amogus") || strings.Contains(strings.ToLower(m.Content), "impostor") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2796,7 +2791,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communis") {
+	} else if strings.Contains(strings.ToLower(m.Content), "commie") || strings.Contains(strings.ToLower(m.Content), "communist") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2812,7 +2807,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "autis") || strings.Contains(strings.ToLower(m.Content), "acoustic") {
+	} else if strings.Contains(strings.ToLower(m.Content), "autist") || strings.Contains(strings.ToLower(m.Content), "acoustic") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2844,7 +2839,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "michael") || strings.Contains(strings.ToLower(m.Content), "vsauce") {
+	} else if strings.Contains(strings.ToLower(m.Content), "vsauce") {
 		if checkBanishedM(m.Author.ID) {
 			return
 		}
@@ -2860,22 +2855,51 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "racist") || strings.Contains(strings.ToLower(m.Content), "nigg") || strings.Contains(strings.ToLower(m.Content), "gold") {
-		if checkBanishedM(m.Author.ID) {
-			return
+	} else if strings.Contains(strings.ToLower(m.Content), "nigga") || strings.Contains(strings.ToLower(m.Content), "nigger") {
+		s.ChannelMessageDelete(m.ChannelID, m.ID)
+
+		s.ChannelMessageSend(m.ID, "ATTENTION <@&1251675947787096115>, "+m.Author.Mention()+" just said the n-word")
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		for _, d := range donators {
+			if d.userID == m.Author.ID {
+				index := slices.Index(donators, d)
+				donators[index].count = d.count + 1
+				donators[index].sacrificed = false
+				d.count++
+				s.ChannelMessageSend(m.ChannelID, "Oh boy! Increasing "+m.Author.Mention()+"'s execution count to "+strconv.Itoa(d.count))
+				if !d.sacrificed {
+					d.sacrificed = false
+				}
+				return
+			}
 		}
 
-		file, _ := os.Open(directory + "racist.mp4")
-		defer file.Close()
-		reader := discordgo.File{
-			Name:   "racist.mp4",
-			Reader: file,
+		s.GuildMemberRoleAdd(GuildID, m.Author.ID, "1253410294999548046")
+		var rankID string
+		rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", m.Author.ID)
+		err = rows.Scan(&rankID)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
+		} else {
+			err := s.GuildMemberRoleRemove(GuildID, m.Author.ID, rankID)
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, err.Error())
+				return
+			}
 		}
-		messageContent := &discordgo.MessageSend{
-			Files:     []*discordgo.File{&reader},
-			Reference: m.Reference(),
-		}
-		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
+
+		donators = append(donators, Donator{
+			userID:     m.Author.ID,
+			count:      1,
+			sacrificed: false,
+			revivable:  true,
+		})
 	} else if strings.Contains(strings.ToLower(m.Content), "shark") || strings.Contains(strings.ToLower(m.Content), "pog") {
 		if checkBanishedM(m.Author.ID) {
 			return
