@@ -2237,6 +2237,68 @@ func main() {
 // Discord handlers
 
 func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if strings.Contains(strings.ToLower(m.Content), "nigga") || strings.Contains(strings.ToLower(m.Content), "nigger") {
+		s.ChannelMessageDelete(m.ChannelID, m.ID)
+
+		for _, d := range donators {
+			if d.userID == m.Author.ID {
+				index := slices.Index(donators, d)
+				donators[index].count = d.count + 1
+				donators[index].sacrificed = false
+				d.count++
+				s.ChannelMessageSend(m.ChannelID, "Oh boy! Increasing "+m.Author.Mention()+"'s execution count to "+strconv.Itoa(d.count))
+				if !d.sacrificed {
+					d.sacrificed = false
+				}
+				return
+			}
+		}
+
+		s.ChannelMessageSend(m.ChannelID, "ATTENTION <@&1251675947787096115>, "+m.Author.Mention()+" just said the n-word")
+
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		for _, d := range donators {
+			if d.userID == m.Author.ID {
+				index := slices.Index(donators, d)
+				donators[index].count = d.count + 1
+				donators[index].sacrificed = false
+				d.count++
+				s.ChannelMessageSend(m.ChannelID, "Oh boy! Increasing "+m.Author.Mention()+"'s execution count to "+strconv.Itoa(d.count))
+				if !d.sacrificed {
+					d.sacrificed = false
+				}
+				return
+			}
+		}
+
+		s.GuildMemberRoleAdd(GuildID, m.Author.ID, "1253410294999548046")
+		var rankID string
+		rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", m.Author.ID)
+		err = rows.Scan(&rankID)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
+		} else {
+			err := s.GuildMemberRoleRemove(GuildID, m.Author.ID, rankID)
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, err.Error())
+				return
+			}
+		}
+
+		donators = append(donators, Donator{
+			userID:     m.Author.ID,
+			count:      1,
+			sacrificed: false,
+			revivable:  true,
+		})
+	}
+
 	_, ok := getDonator(m.Author.ID)
 
 	if ok {
@@ -2855,51 +2917,6 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Reference: m.Reference(),
 		}
 		s.ChannelMessageSendComplex(m.ChannelID, messageContent)
-	} else if strings.Contains(strings.ToLower(m.Content), "nigga") || strings.Contains(strings.ToLower(m.Content), "nigger") {
-		s.ChannelMessageDelete(m.ChannelID, m.ID)
-
-		s.ChannelMessageSend(m.ID, "ATTENTION <@&1251675947787096115>, "+m.Author.Mention()+" just said the n-word")
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer db.Close()
-
-		for _, d := range donators {
-			if d.userID == m.Author.ID {
-				index := slices.Index(donators, d)
-				donators[index].count = d.count + 1
-				donators[index].sacrificed = false
-				d.count++
-				s.ChannelMessageSend(m.ChannelID, "Oh boy! Increasing "+m.Author.Mention()+"'s execution count to "+strconv.Itoa(d.count))
-				if !d.sacrificed {
-					d.sacrificed = false
-				}
-				return
-			}
-		}
-
-		s.GuildMemberRoleAdd(GuildID, m.Author.ID, "1253410294999548046")
-		var rankID string
-		rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", m.Author.ID)
-		err = rows.Scan(&rankID)
-		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
-		} else {
-			err := s.GuildMemberRoleRemove(GuildID, m.Author.ID, rankID)
-			if err != nil {
-				s.ChannelMessageSend(m.ChannelID, err.Error())
-				return
-			}
-		}
-
-		donators = append(donators, Donator{
-			userID:     m.Author.ID,
-			count:      1,
-			sacrificed: false,
-			revivable:  true,
-		})
 	} else if strings.Contains(strings.ToLower(m.Content), "shark") {
 		if checkBanishedM(m.Author.ID) {
 			return
