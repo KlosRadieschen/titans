@@ -1093,6 +1093,65 @@ func addHandlers() {
 		})
 	}
 
+	commandHandlers["balance"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if checkBanished(s, i, i.Member.User.ID) {
+			return
+		}
+
+		val, err := getCoinBalance(i.Member.User.ID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Bro you are not even registered",
+				},
+			})
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Your current balance is %v Scorchcoin", val),
+				},
+			})
+		}
+
+	}
+
+	commandHandlers["recover"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if checkBanished(s, i, i.Member.User.ID) {
+			return
+		}
+
+		val, err := getCoinBalance(i.Member.User.ID)
+		if err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Bro you are not even registered",
+				},
+			})
+		} else {
+			if val == 0 {
+				editCoinBalance(i.Member.User.ID, 10)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Successfully saved you from bankruptcy you broke ass bitch",
+					},
+				})
+			} else {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You are not even broke idiot",
+					},
+				})
+			}
+
+		}
+
+	}
+
 	commandHandlers["getpersonalshipwithuser"] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if checkBanished(s, i, i.Member.User.ID) {
 			return

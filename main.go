@@ -1,9 +1,26 @@
 package main
 
 import (
+	"bufio"
+	"context"
+	"database/sql"
+	"fmt"
+	"image/png"
+	"io"
+	"log"
+	"math/rand"
+	"net/http"
+	"os"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/sashabaranov/go-openai"
-	"math/rand"
+	"google.golang.org/api/customsearch/v1"
+	"google.golang.org/api/googleapi/transport"
 )
 
 var (
@@ -49,8 +66,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "gamble",
-			Description: "GAMBLE your Scorchcoin!",
+			Name:        "recover",
+			Description: "Recover from being completely broke",
 		},
 		{
 			Name:        "airevive",
@@ -102,6 +119,68 @@ var (
 					Required:    true,
 				},
 			},
+		},
+	}
+
+	modalHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"gamblemodalsubmit": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			value, err := strconv.Atoi(i.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Type in an actual number you idiot",
+					},
+				})
+				return
+			}
+
+			balance, err := getCoinBalance(i.Member.User.ID)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You are not even registered",
+					},
+				})
+				return
+			} else if balance < value {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro you CANNOT afford that shit",
+					},
+				})
+				return
+			} else if value < 0 {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "you ain't foolin me idiot",
+					},
+				})
+				return
+			}
+
+			currentBalance, _ := getCoinBalance(i.Member.User.ID)
+			randInt := rand.Intn(2)
+			if randInt == 1 {
+				editCoinBalance(i.Member.User.ID, currentBalance-value)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "YOU LOSE",
+					},
+				})
+			} else {
+				editCoinBalance(i.Member.User.ID, currentBalance+value)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "YOU WIN",
+					},
+				})
+			}
 		},
 	}
 
@@ -171,43 +250,30 @@ var (
 		},
 
 		"gambleselect": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var edit discordgo.WebhookEdit
-			if i.MessageComponentData().Values[1] == "coinflip" {
-				text := "This is the description for the Annapolis Class"
-				edit = discordgo.WebhookEdit{
-					Components: []discordgo.MessageComponent{
-						discordgo.ActionsRow{
-							Components: []discordgo.MessageComponent{
-								discordgo.TextInput{
-									CustomID: "value",
-									Label: "How much Scorchcoin do you DARE to gamble?"
-									Style: discordgo.TextInputShort,
-									Required: true,
-								},
-							},
-						},
-						discordgo.ActionsRow{
-							Components: []discordgo.MessageComponent{
-								discordgo.SelectMenu{
-									CustomID: "gambleselect",
-									Placeholder: "Select gambling method",
-									Options: []discordgo.SelectMenuOption{
-										{
-											Label:       "Coinflip",
-											Value:       "coinflip",
-											Description: "Gamble your Scorchcoin in a 50/50",
-											Default: true,
-										},
+			var components []discordgo.MessageComponent
+			if i.MessageComponentData().Values[0] == "coinflip" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+										Default:     true,
 									},
 								},
 							},
 						},
-						discordgo.ActionsRow{
-							Components: []discordgo.MessageComponent{
-								discordgo.Button{
-									Label: "GAMBLE",
-									CustomID: "gamblebutton",
-								}
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label:    "GAMBLE",
+								CustomID: "gamblebutton",
 							},
 						},
 					},
@@ -216,48 +282,44 @@ var (
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: &discordgo.InteractionResponseData{
+					Components: components,
+				},
 			})
 		},
 
 		"gamblebutton": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			value = i.MessageComponentData().Values[0]
-			if getCoinBalance(i.Member.User.ID) < value {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Bro you CANNOT afford that shit",
+			response := discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseModal,
+				Data: &discordgo.InteractionResponseData{
+					Title:    "GAMBLING",
+					Content:  "THIS IS WHERE YOU GAMBLE",
+					CustomID: "gamblemodalsubmit",
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.TextInput{
+									CustomID: "value",
+									Label:    "How much Scorchcoin do you DARE to gamble?",
+									Style:    discordgo.TextInputShort,
+									Required: true,
+								},
+							},
+						},
 					},
-				})
-				return
-			} else if value < 0 {
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "",
-					},
-				})
-				return
+				},
 			}
 
-			randInt := rand.Intn(1)
-			if randInt == 1 {
-				editCoinBalance(i.Member.User.ID, -value)
+			err := s.InteractionRespond(i.Interaction, &response)
+			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "YOU LOSE",
-					},
-				})
-			} else {
-				editCoinBalance(i.Member.User.ID, value)
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "YOU WIN",
+						Content: err.Error(),
 					},
 				})
 			}
-		}
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -303,19 +365,9 @@ var (
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: []discordgo.MessageComponent{
-								discordgo.TextInput{
-									CustomID: "value",
-									Label: "How much Scorchcoin do you DARE to gamble?"
-									Style: discordgo.TextInputShort,
-									Required: true,
-								},
-							},
-						},
-						discordgo.ActionsRow{
-							Components: []discordgo.MessageComponent{
 								discordgo.SelectMenu{
-									CustomID: "gambleselect",
 									Placeholder: "Select gambling method",
+									CustomID:    "gambleselect",
 									Options: []discordgo.SelectMenuOption{
 										{
 											Label:       "Coinflip",
@@ -330,8 +382,15 @@ var (
 				},
 			}
 
-			inter = *i.Interaction
-			s.InteractionRespond(i.Interaction, &response)
+			err := s.InteractionRespond(i.Interaction, &response)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+			}
 		},
 
 		"verger": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -2277,6 +2336,10 @@ func main() {
 			if h, ok := componentsHandlers[i.MessageComponentData().CustomID]; ok {
 				h(s, i)
 			}
+		case discordgo.InteractionModalSubmit:
+			if h, ok := modalHandlers[i.ModalSubmitData().CustomID]; ok {
+				h(s, i)
+			}
 		}
 	})
 
@@ -3619,10 +3682,10 @@ func getCoinBalance(ID string) (int, error) {
 	defer db.Close()
 
 	var balance int
-	rows := db.QueryRow("SELECT balance FROM ScorchCoin WHERE pk_userID=?", ID)
+	rows := db.QueryRow("SELECT coin FROM Pilot WHERE pk_userID=?", ID)
 	err = rows.Scan(&balance)
 	if err != nil {
-		return nil, err
+		return 0, err
 	} else {
 		return balance, nil
 	}
@@ -3636,7 +3699,6 @@ func editCoinBalance(ID string, value int) error {
 	}
 	defer db.Close()
 
-	var balance int
-	_, err := db.Exec("UPDATE ScorchCoin SET balance=? WHERE pk_userID=?", value, ID)
+	_, err = db.Exec("UPDATE Pilot SET coin=? WHERE pk_userID=?", value, ID)
 	return err
 }
