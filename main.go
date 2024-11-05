@@ -1210,7 +1210,7 @@ You must choose between one of the following outcomes: NO REVIVE!, REVIVE!, DIE 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Poll created!",
+					Content: "Poll created in https://discord.com/channels/1195135473006420048/1203821534175825942!",
 				},
 			})
 			for i := range i.ApplicationCommandData().Options {
