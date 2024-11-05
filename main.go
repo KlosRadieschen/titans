@@ -1,26 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"database/sql"
-	"fmt"
-	"image/png"
-	"io"
-	"log"
-	"math/rand"
-	"net/http"
-	"os"
-	"regexp"
-	"slices"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/bwmarrin/discordgo"
 	"github.com/sashabaranov/go-openai"
-	customsearch "google.golang.org/api/customsearch/v1"
-	"google.golang.org/api/googleapi/transport"
+	"math/rand"
 )
 
 var (
@@ -235,6 +218,46 @@ var (
 				Type: discordgo.InteractionResponseUpdateMessage,
 			})
 		},
+
+		"gamblebutton": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			value = i.MessageComponentData().Values[0]
+			if getCoinBalance(i.Member.User.ID) < value {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Bro you CANNOT afford that shit",
+					},
+				})
+				return
+			} else if value < 0 {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "",
+					},
+				})
+				return
+			}
+
+			randInt := rand.Intn(1)
+			if randInt == 1 {
+				editCoinBalance(i.Member.User.ID, -value)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "YOU LOSE",
+					},
+				})
+			} else {
+				editCoinBalance(i.Member.User.ID, value)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "YOU WIN",
+					},
+				})
+			}
+		}
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
