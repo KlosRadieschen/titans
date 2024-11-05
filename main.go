@@ -66,8 +66,8 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "register",
-			Description: "Register a new character into the database",
+			Name:        "gamble",
+			Description: "GAMBLE your Scorchcoin!",
 		},
 		{
 			Name:        "airevive",
@@ -186,6 +186,55 @@ var (
 				Type: discordgo.InteractionResponseUpdateMessage,
 			})
 		},
+
+		"gambleselect": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var edit discordgo.WebhookEdit
+			if i.MessageComponentData().Values[1] == "coinflip" {
+				text := "This is the description for the Annapolis Class"
+				edit = discordgo.WebhookEdit{
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.TextInput{
+									CustomID: "value",
+									Label: "How much Scorchcoin do you DARE to gamble?"
+									Style: discordgo.TextInputShort,
+									Required: true,
+								},
+							},
+						},
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.SelectMenu{
+									CustomID: "gambleselect",
+									Placeholder: "Select gambling method",
+									Options: []discordgo.SelectMenuOption{
+										{
+											Label:       "Coinflip",
+											Value:       "coinflip",
+											Description: "Gamble your Scorchcoin in a 50/50",
+											Default: true,
+										},
+									},
+								},
+							},
+						},
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.Button{
+									Label: "GAMBLE",
+									CustomID: "gamblebutton",
+								}
+							},
+						},
+					},
+				}
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+			})
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -216,6 +265,44 @@ var (
 						},
 					},
 					Content: "This is the description for the Annapolis Class",
+				},
+			}
+
+			inter = *i.Interaction
+			s.InteractionRespond(i.Interaction, &response)
+		},
+
+		"newstuff": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			response := discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.TextInput{
+									CustomID: "value",
+									Label: "How much Scorchcoin do you DARE to gamble?"
+									Style: discordgo.TextInputShort,
+									Required: true,
+								},
+							},
+						},
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.SelectMenu{
+									CustomID: "gambleselect",
+									Placeholder: "Select gambling method",
+									Options: []discordgo.SelectMenuOption{
+										{
+											Label:       "Coinflip",
+											Value:       "coinflip",
+											Description: "Gamble your Scorchcoin in a 50/50",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 
@@ -3497,4 +3584,35 @@ func revive(s *discordgo.Session, i *discordgo.InteractionCreate, ID string) {
 	}
 
 	s.ChannelMessageSend(i.ChannelID, fmt.Sprintf("Member fully revived! (Execution count: %v)", count))
+}
+
+func getCoinBalance(ID string) (int, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var balance int
+	rows := db.QueryRow("SELECT balance FROM ScorchCoin WHERE pk_userID=?", ID)
+	err = rows.Scan(&balance)
+	if err != nil {
+		return nil, err
+	} else {
+		return balance, nil
+	}
+}
+
+func editCoinBalance(ID string, value int) error {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var balance int
+	_, err := db.Exec("UPDATE ScorchCoin SET balance=? WHERE pk_userID=?", value, ID)
+	return err
 }
