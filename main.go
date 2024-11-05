@@ -295,10 +295,11 @@ var (
 			s.InteractionRespond(i.Interaction, &response)
 		},
 
-		"newstuff": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"gamble": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			response := discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
+					Flags: discordgo.MessageFlagsEphemeral,
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: []discordgo.MessageComponent{
