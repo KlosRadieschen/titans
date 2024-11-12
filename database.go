@@ -3125,3 +3125,61 @@ func checkAndRestorePilot(ID string) bool {
 	stmt.Exec(&ID)
 	return true
 }
+
+func addDatabaseGets(table string, whereField string, whereValue string, format string, fields ...string) string {
+	commandHandlers["get"+strings.ToLower(table)] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if checkBanished(s, i, i.Member.User.ID) {
+			return
+		}
+
+		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		fieldsString := "(" + fields[0]
+		for i, field := range fields {
+			if i == 1 {
+				continue
+			}
+			fieldsString += "," + field
+		}
+		fieldsString += ")"
+
+		stmt, err := db.Prepare("SELECT ? FROM ? WHERE ?=?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+
+		row := stmt.QueryRow(fieldsString, table, whereField, whereValue)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		results := make([]string, len(fields))
+		if err := row.Scan(results...); err != nil {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: err.Error(),
+				},
+			})
+			return
+		}
+
+		resultString := fmt.Sprintf(format, results...)
+
+		if resultString == "" {
+			resultString = "No results"
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: resultString,
+			},
+		})
+	}
+}
