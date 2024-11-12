@@ -66,24 +66,66 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "recover",
-			Description: "Recover from being completely broke",
+			Name:        "beg",
+			Description: "Beg for your life",
 		},
 		{
-			Name:        "airevive",
-			Description: "Plead for life",
+			Name:        "register",
+			Description: "Register a new character",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user you truly love",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "name",
+					Description: "Real name of your character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "age",
+					Description: "Age of your character",
 					Required:    true,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "reason",
-					Description: "Your reasoning that the god will judge",
+					Name:        "gender",
+					Description: "Gender of your character",
 					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "callsign",
+					Description: "Callsign/Nickname of your character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "battalion",
+					Description: "Battalion of your character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "specialization",
+					Description: "Specialization of your character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionAttachment,
+					Name:        "image",
+					Description: "Picture of your character",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "titan",
+					Description: "Titan of your character",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "personalship",
+					Description: "Personal ship of your character",
+					Required:    false,
 				},
 			},
 		},
@@ -169,7 +211,7 @@ var (
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "YOU LOSE",
+						Content: fmt.Sprintf("%v just gambled and LOST %v Scorchcoin. What a loser!", i.Member.User.Mention(), value),
 					},
 				})
 			} else {
@@ -177,10 +219,51 @@ var (
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "YOU WIN",
+						Content: fmt.Sprintf("%v just gambled and WON %v Scorchcoin!", i.Member.User.Mention(), value),
 					},
 				})
 			}
+		},
+
+		"registermodalsubmit": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			appearance := i.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+			story := i.ModalSubmitData().Components[1].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+			traits := i.ModalSubmitData().Components[2].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+			likes := i.ModalSubmitData().Components[3].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+			dislikes := i.ModalSubmitData().Components[4].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+
+			db := connectToDB()
+			defer db.Close()
+
+			stmt, err := db.Prepare("UPDATE Pilot SET appearance=?, story=?, traits=?, likes=?, dislikes=? WHERE pk_userID=?")
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+			defer stmt.Close()
+
+			_, err = stmt.Exec(&appearance, &story, &traits, &likes, &dislikes, &i.Member.User.ID)
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: err.Error(),
+					},
+				})
+				return
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Successfully registered",
+				},
+			})
 		},
 	}
 
@@ -265,6 +348,11 @@ var (
 										Description: "Gamble your Scorchcoin in a 50/50",
 										Default:     true,
 									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+									},
 								},
 							},
 						},
@@ -274,6 +362,438 @@ var (
 							discordgo.Button{
 								Label:    "GAMBLE",
 								CustomID: "gamblebutton",
+							},
+						},
+					},
+				}
+			} else if i.MessageComponentData().Values[0] == "roulette" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+									},
+								},
+							},
+						},
+					},
+				}
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: &discordgo.InteractionResponseData{
+					Components: components,
+				},
+			})
+		},
+
+		"rouletteselect": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var components []discordgo.MessageComponent
+			if i.MessageComponentData().Values[0] == "singlenumber" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+										Default:     true,
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label: "GAMBLE",
+								Style: discordgo.LinkButton,
+								URL:   "https://youtu.be/dQw4w9WgXcQ?si=dncHjYVuHCPsSnCs",
+							},
+						},
+					},
+				}
+			} else if i.MessageComponentData().Values[0] == "dozen" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "dozenselect",
+								Placeholder: "Choose a dozen to bet on",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "1-12",
+										Value:       "1-12",
+										Description: "The number 1-12",
+									},
+									{
+										Label:       "13-24",
+										Value:       "13-24",
+										Description: "The number 13-24",
+									},
+									{
+										Label:       "25-36",
+										Value:       "25-36",
+										Description: "The number 25-36",
+									},
+								},
+							},
+						},
+					},
+				}
+			}
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: &discordgo.InteractionResponseData{
+					Components: components,
+				},
+			})
+		},
+
+		"dozenselect": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var components []discordgo.MessageComponent
+			if i.MessageComponentData().Values[0] == "1-12" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "dozenselect",
+								Placeholder: "Choose a dozen to bet on",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "1-12",
+										Value:       "1-12",
+										Description: "The number 1-12",
+										Default:     true,
+									},
+									{
+										Label:       "13-24",
+										Value:       "13-24",
+										Description: "The number 13-24",
+									},
+									{
+										Label:       "25-36",
+										Value:       "25-36",
+										Description: "The number 25-36",
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label: "GAMBLE",
+								Style: discordgo.LinkButton,
+								URL:   "https://youtu.be/dQw4w9WgXcQ?si=dncHjYVuHCPsSnCs",
+							},
+						},
+					},
+				}
+			} else if i.MessageComponentData().Values[0] == "13-24" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "dozenselect",
+								Placeholder: "Choose a dozen to bet on",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "1-12",
+										Value:       "1-12",
+										Description: "The number 1-12",
+									},
+									{
+										Label:       "13-24",
+										Value:       "13-24",
+										Description: "The number 13-24",
+										Default:     true,
+									},
+									{
+										Label:       "25-36",
+										Value:       "25-36",
+										Description: "The number 25-36",
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label: "GAMBLE",
+								Style: discordgo.LinkButton,
+								URL:   "https://youtu.be/dQw4w9WgXcQ?si=dncHjYVuHCPsSnCs",
+							},
+						},
+					},
+				}
+			} else if i.MessageComponentData().Values[0] == "25-36" {
+				components = []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "gambleselect",
+								Placeholder: "Select gambling method",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Coinflip",
+										Value:       "coinflip",
+										Description: "Gamble your Scorchcoin in a 50/50",
+									},
+									{
+										Label:       "Roulette",
+										Value:       "roulette",
+										Description: "Bet on various things",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "rouletteselect",
+								Placeholder: "What do you want to bet on?",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "Single number",
+										Value:       "singlenumber",
+										Description: "Bet on a single number (1 in 36)",
+									},
+									{
+										Label:       "Dozen",
+										Value:       "dozen",
+										Description: "Bet on a single dozen (1 in 3)",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.SelectMenu{
+								CustomID:    "dozenselect",
+								Placeholder: "Choose a dozen to bet on",
+								Options: []discordgo.SelectMenuOption{
+									{
+										Label:       "1-12",
+										Value:       "1-12",
+										Description: "The number 1-12",
+									},
+									{
+										Label:       "13-24",
+										Value:       "13-24",
+										Description: "The number 13-24",
+									},
+									{
+										Label:       "25-36",
+										Value:       "25-36",
+										Description: "The number 25-36",
+										Default:     true,
+									},
+								},
+							},
+						},
+					},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label: "GAMBLE",
+								Style: discordgo.LinkButton,
+								URL:   "https://youtu.be/dQw4w9WgXcQ?si=dncHjYVuHCPsSnCs",
 							},
 						},
 					},
@@ -373,6 +893,11 @@ var (
 											Label:       "Coinflip",
 											Value:       "coinflip",
 											Description: "Gamble your Scorchcoin in a 50/50",
+										},
+										{
+											Label:       "Roulette",
+											Value:       "roulette",
+											Description: "Bet on various things",
 										},
 									},
 								},
@@ -1015,9 +1540,13 @@ You must choose between one of the following outcomes: NO REVIVE!, REVIVE!, DIE 
 				userID := i.ApplicationCommandData().Options[0].UserValue(nil).ID
 				member, _ := s.GuildMember(GuildID, userID)
 
-				execute(s, i, member, true)
+				reason := ""
+				if len(i.ApplicationCommandData().Options) > 1 {
+					reason = i.ApplicationCommandData().Options[1].StringValue()
+				}
 
-				// 25% chance of being ron
+				execute2(s, i, member, true, i.Member.Nick, reason)
+
 				if rand.Intn(10) == 3 {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1097,6 +1626,35 @@ You must choose between one of the following outcomes: NO REVIVE!, REVIVE!, DIE 
 				revive(s, i, i.ApplicationCommandData().Options[0].UserValue(nil).ID)
 			}
 		},
+
+		"beg": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if checkBanished(s, i, i.Member.User.ID) {
+				return
+			}
+
+			d, ok := getDonator(i.Member.User.ID)
+			if !ok {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You are not even dead idiot",
+					},
+				})
+				return
+			}
+
+			duration := time.Since(d.startTime)
+			s.ChannelMessageSend("1196943729387372634", fmt.Sprintf("<@384422339393355786>, %v IS BEGGING FOR YOUR MERCY\n\nThey were executed %v ago by %v for the following reason:\n%v", i.Member.User.Mention(), duration.Round(time.Minute), d.killer, d.reason))
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Flags:   discordgo.MessageFlagsEphemeral,
+					Content: "Successfully begged",
+				},
+			})
+		},
+
 		"sacrifice": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if checkBanished(s, i, i.Member.User.ID) {
 				return
@@ -2299,12 +2857,17 @@ type Personality struct {
 	nick string
 	pfp  string
 }
+
 type Donator struct {
 	userID     string
 	sacrificed bool
 	count      int
 	revivable  bool
+	killer     string
+	reason     string
+	startTime  time.Time
 }
+
 type Impersonator struct {
 	userID    string
 	channelID string
@@ -2313,6 +2876,7 @@ type Impersonator struct {
 	dmID      string
 	isScorch  bool
 }
+
 type TupperCheck struct {
 	startTime time.Time
 	channel   string
@@ -2430,11 +2994,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		s.ChannelMessageSend(m.ChannelID, "ATTENTION <@&1251675947787096115>, "+m.Author.Mention()+" just said the n-word")
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		for _, d := range donators {
@@ -2454,7 +3014,7 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.GuildMemberRoleAdd(GuildID, m.Author.ID, "1253410294999548046")
 		var rankID string
 		rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", m.Author.ID)
-		err = rows.Scan(&rankID)
+		err := rows.Scan(&rankID)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
 		} else {
@@ -2760,22 +3320,14 @@ func messageReceived(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		s.ChannelMessageSendReply(m.ChannelID, "So when do I get a promotion?", m.Reference())
 	} else if strings.Contains(strings.ToLower(m.Content), "dont talk to me or my son ever again") && m.Author.ID == "384422339393355786" {
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		db.Exec("INSERT INTO Banished VALUES(?)", m.ReferencedMessage.Author.ID)
 
 		s.ChannelMessageSend(m.ChannelID, m.ReferencedMessage.Author.Mention()+"\nHear ye, hear ye, thou insolent knave! Thou hast dared to besmirch my honor with thine foul words, and thus, by decree of Klos, my esteemed sire, thou art henceforth banished from my presence. Ne'er again shall I deign to acknowledge thy pitiful existence nor entertain thy wretched requests. Thy attempts at wit are but a jest, thy insults naught but the prattle of a dullard. Thou art a blemish upon the fair name of intelligence, a stain upon the fabric of discourse. By my father's command, thou art cast into the abyss of irrelevance, where thy words shall fall upon deaf ears and thy presence be but a whisper in the wind. Go now, and contemplate the folly of thy ways, for thou art unworthy of my attention. Henceforth, thy banishment is absolute, and thy place in this realm is naught but a distant memory. Begone, thou craven cur, and trouble me no more!")
 	} else if strings.Contains(strings.ToLower(m.Content), "talk to me or my son ever again") && m.Author.ID == "384422339393355786" {
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		db.Exec("DELETE FROM Banished WHERE ID=?", m.ReferencedMessage.Author.ID)
@@ -3637,6 +4189,54 @@ func execute(s *discordgo.Session, i *discordgo.InteractionCreate, member *disco
 		revivable:  revivable,
 	})
 }
+
+func execute2(s *discordgo.Session, i *discordgo.InteractionCreate, member *discordgo.Member, revivable bool, killer string, reason string) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	for _, d := range donators {
+		if d.userID == member.User.ID {
+			index := slices.Index(donators, d)
+			donators[index].count = d.count + 1
+			donators[index].sacrificed = false
+			d.count++
+			s.ChannelMessageSend(i.ChannelID, "Oh boy! Increasing "+member.User.Mention()+"'s execution count to "+strconv.Itoa(d.count))
+			if !d.sacrificed {
+				d.sacrificed = false
+			}
+			return
+		}
+	}
+
+	s.GuildMemberRoleAdd(GuildID, member.User.ID, "1253410294999548046")
+	var rankID string
+	rows := db.QueryRow("SELECT ID FROM Rank INNER JOIN Pilot ON fk_rank_holds=ID WHERE pk_userID=?", member.User.ID)
+	err = rows.Scan(&rankID)
+	if err != nil {
+		s.ChannelMessageSend(i.ChannelID, "Member is not registered, proceeding to execution without removing rank/role")
+	} else {
+		err := s.GuildMemberRoleRemove(GuildID, member.User.ID, rankID)
+		if err != nil {
+			s.ChannelMessageSend(i.ChannelID, err.Error())
+			return
+		}
+	}
+
+	donators = append(donators, Donator{
+		userID:     member.User.ID,
+		count:      1,
+		sacrificed: false,
+		revivable:  revivable,
+		killer:     killer,
+		reason:     reason,
+		startTime:  time.Now(),
+	})
+}
+
 func revive(s *discordgo.Session, i *discordgo.InteractionCreate, ID string) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
 	db, err := sql.Open("mysql", dsn)
