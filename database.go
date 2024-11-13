@@ -23,11 +23,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -79,11 +75,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		stmt, err := db.Prepare("SELECT pk_userID, specialisation, fk_battalion_isPartOf FROM Pilot ORDER BY fk_battalion_isPartOf")
@@ -149,11 +141,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -205,11 +193,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -260,11 +244,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -314,11 +294,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -373,11 +349,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -428,11 +400,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -515,11 +483,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -576,11 +540,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -630,11 +590,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -685,11 +641,7 @@ func addHandlers() {
 		}
 
 		tz := timezone.New()
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -755,11 +707,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -815,11 +763,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -870,11 +814,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -925,11 +865,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -983,11 +919,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1041,11 +973,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1157,11 +1085,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1214,11 +1138,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1270,11 +1190,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1368,11 +1284,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1428,11 +1340,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1525,11 +1433,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1579,11 +1483,7 @@ func addHandlers() {
 		}
 
 		tz := timezone.New()
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		stmt, err := db.Prepare("SELECT value FROM Timezone WHERE pk_pilot_isIn=?")
@@ -1647,11 +1547,7 @@ func addHandlers() {
 		}
 
 		tz := timezone.New()
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -1777,11 +1673,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -1876,16 +1768,12 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Check if the pilot already has a Titan
 		var existingTitan sql.NullString
-		err = db.QueryRow("SELECT fk_titan_pilots FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingTitan)
+		err := db.QueryRow("SELECT fk_titan_pilots FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingTitan)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -1995,16 +1883,12 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Check if the pilot already has a personal ship
 		var existingShip sql.NullString
-		err = db.QueryRow("SELECT fk_personalship_possesses FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingShip)
+		err := db.QueryRow("SELECT fk_personalship_possesses FROM Pilot WHERE pk_userID = ?", i.Member.User.ID).Scan(&existingShip)
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -2103,11 +1987,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2178,11 +2058,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2231,11 +2107,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2274,11 +2146,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2315,11 +2183,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2356,11 +2220,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2397,11 +2257,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2448,11 +2304,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2589,11 +2441,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		// Insert data into the table
@@ -2739,11 +2587,7 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		member, _ := s.GuildMember(GuildID, i.Member.User.ID)
@@ -2835,11 +2679,7 @@ func addHandlers() {
 			return
 		}
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
 		//
@@ -2941,14 +2781,10 @@ func addHandlers() {
 			})
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
+		db := connectToDB()
 		defer db.Close()
 
-		_, err = db.Query(i.ApplicationCommandData().Options[0].StringValue())
+		_, err := db.Query(i.ApplicationCommandData().Options[0].StringValue())
 		if err != nil {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -3124,64 +2960,6 @@ func checkAndRestorePilot(ID string) bool {
 
 	stmt.Exec(&ID)
 	return true
-}
-
-func addDatabaseGets(table string, whereField string, whereValue string, format string, fields ...string) string {
-	commandHandlers["get"+strings.ToLower(table)] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if checkBanished(s, i, i.Member.User.ID) {
-			return
-		}
-
-		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbAddress, dbName)
-		db, err := sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer db.Close()
-
-		fieldsString := "(" + fields[0]
-		for i, field := range fields {
-			if i == 1 {
-				continue
-			}
-			fieldsString += "," + field
-		}
-		fieldsString += ")"
-
-		stmt, err := db.Prepare("SELECT ? FROM ? WHERE ?=?")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer stmt.Close()
-
-		row := stmt.QueryRow(fieldsString, table, whereField, whereValue)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		results := make([]string, len(fields))
-		if err := row.Scan(results...); err != nil {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: err.Error(),
-				},
-			})
-			return
-		}
-
-		resultString := fmt.Sprintf(format, results...)
-
-		if resultString == "" {
-			resultString = "No results"
-		}
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: resultString,
-			},
-		})
-	}
 }
 
 func connectToDB() *sql.DB {
