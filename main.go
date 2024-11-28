@@ -2774,7 +2774,7 @@ You must choose between one of the following outcomes: NO REVIVE!, REVIVE!, DIE 
 					Content: &msg,
 				})
 				time.Sleep(5 * time.Second)
-				msg = "You will die so he can live. What a noble sacrifice"
+				msg = "You will die so they can live. What a noble sacrifice"
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &msg,
 				})
